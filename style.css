@@ -3872,9 +3872,47 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 /* ============================================================
+   V14: DIMENSIONAL ATMOSPHERE (js/atmos.js) + depth transitions
+   ============================================================ */
+
+/* The perspective particle universe sits with the fog at z 1:
+   above each screen's fixed backdrop, below the app content. */
+#atmos-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Screens arrive from depth: a gentle perspective settle instead of a
+   flat fade. Composited transform + opacity only. */
+#app {
+  perspective: 1200px;
+}
+
+.screen.active {
+  animation: screen-depth-in 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transform-origin: 50% 38%;
+}
+
+@keyframes screen-depth-in {
+  from {
+    opacity: 0;
+    transform: translateZ(-90px) rotateX(2.4deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(0) rotateX(0deg);
+  }
+}
+
+/* ============================================================
    REDUCED MOTION
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
+  .screen.active {
+    animation: none !important;
+  }
   #duel-results {
     animation: none !important;
   }

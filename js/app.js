@@ -317,6 +317,9 @@
       showViewerForCurrent();
     }
 
+    // Dimensional atmosphere: each tab gets its own depth universe.
+    if (window.Atmos) window.Atmos.set(tab);
+
     // The wind tunnel and the proving ground run only while on stage.
     if (window.WindLab) {
       if (tab === 'lab') window.WindLab.show(current);
