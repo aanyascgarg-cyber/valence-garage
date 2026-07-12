@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Viewer harness v3</title>
+  <style>
+    html, body { margin: 0; background: #080404; color: #C9A84C;
+      font-family: monospace; }
+    #viewer-mount { position: relative; width: 100%; height: 60vh;
+      min-height: 240px; background: #0b0505; }
+    #viewer-mount.loading::after { content: 'loading'; position: absolute;
+      top: 8px; left: 8px; color: #E8D5A0; }
+    #bogus-mount { position: relative; width: 100%; height: 30vh;
+      min-height: 180px; background: #0b0505; }
+    #log { padding: 8px; font-size: 12px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="viewer-mount"></div>
+  <div id="log">harness starting...</div>
+
+  <!--
+    v3 loading path: viewer.js is a classic script that injects the r128 UMD
+    vendor scripts (three.min.js, GLTFLoader.js, OrbitControls.js) as classic
+    <script> tags at first mount. No ES modules, no import map. cars.js
+    provides window.CARS, viewer.js provides window.Viewer.
+  -->
+  <script src="../js/cars.js"></script>
+  <script src="../js/viewer.js"></script>
+  <script>
+    // The harness records everything into window.__results so a headless
+    // driver can poll it instead of relying on screenshots.
+    window.__results = {
+      done: false, mountOk: null, cars: [], errors: [],
+      threeRevision: null,
+      bogus: { done: false, loadOk: null, reason: null, hasRetry: null },
+      retry: { done: false, clearedThenReappeared: null }
+    };
+
+    // Capture console errors globally.
+    (function () {
+      var origErr = console.error;
+      console.error = function () {
+        try {
+          window.__results.errors.push(
+            Array.prototype.map.call(arguments, String).join(' '));
+        } catch (e) {}
+        origErr.apply(console, arguments);
+      };
+      window.addEventListener('error', function (e) {
+        window.__results.errors.push('window.error: ' + (e.message || e));
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        window.__results.errors.push('unhandledrejection: ' +
+          (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+      });
+    })();
+
+    function log(msg) {
+      var el = document.getElementById('log');
+      el.textContent += '\n' + msg;
+    }
+
+    async function run() {
+      var mount = document.getElementById('viewer-mount');
+      var ok = await window.Viewer.mount(mount);
+      window.__results.mountOk = ok;
+      var dbg0 = window.Viewer.__debug();
+      window.__results.threeRevision = dbg0.threeRevision;
+      log('mount ok: ' + ok + '  three r' + dbg0.threeRevision);
+      if (!ok) {
+        window.__results.done = true;
+        log('MOUNT FAILED, stopping');
+        return;
+      }
+      // Force the viewer active regardless of IntersectionObserver timing.
+      window.Viewer.setActive(true);
+
+      // This harness lives under /tools/, but car.file paths are relative to
+      // the app root (models/...). Rewrite each to a root absolute URL so the
+      // fetch resolves the same way it does from index.html.
+      var cars = (window.CARS || []).map(function (c) {
+        var copy = {};
+        for (var k in c) copy[k] = c[k];
+        copy.file = new URL('/' + c.file, location.origin).href;
+        return copy;
+      });
+      for (var i = 0; i < cars.length; i++) {
+        var car = cars[i];
+        var errBefore = window.__results.errors.length;
+        var t0 = performance.now();
+        var loadOk = false;
+        try {
+          loadOk = await window.Viewer.show(car);
+        } catch (e) {
+          window.__results.errors.push('show threw: ' + e.message);
+        }
+        var dt = (performance.now() - t0) / 1000;
+        // Try an accent recolor as part of the smoke test.
+        try { window.Viewer.setAccent(car.accent); } catch (e) {}
+        // Confirm setAccent tinted the mount's --accent CSS var.
+        var cssAccent = mount.style.getPropertyValue('--accent').trim();
+        var dbg = window.Viewer.__debug();
+        var rec = {
+          id: car.id,
+          file: car.file,
+          loadOk: loadOk,
+          seconds: Math.round(dt * 100) / 100,
+          frameRadius: Math.round((dbg.frameRadius || 0) * 1000) / 1000,
+          sceneChildren: dbg.sceneChildren,
+          modelPresent: dbg.modelPresent,
+          cssAccent: cssAccent,
+          cacheIds: dbg.cacheIds.slice(),
+          newErrors: window.__results.errors.length - errBefore
+        };
+        window.__results.cars.push(rec);
+        log(car.id + ': ' + JSON.stringify(rec));
+      }
+
+      // ---- placeholder + Retry path -------------------------------------
+      // Point one load at a bogus url (harness only) and confirm the stage
+      // shows a diagnostic with data-reason and a Retry button, without
+      // crashing. Then click Retry against a REAL url to confirm recovery.
+      await testBogusAndRetry(mount, cars[0]);
+
+      window.__results.done = true;
+      log('DONE. total errors: ' + window.__results.errors.length);
+    }
+
+    async function testBogusAndRetry(mount, realCar) {
+      try {
+        var bogus = { id: 'bogus', file:
+          new URL('/models/does-not-exist.glb', location.origin).href };
+        var loadOk = await window.Viewer.show(bogus);
+        // Give the DOM a tick to render the diagnostic.
+        await new Promise(function (r) { setTimeout(r, 60); });
+        var reason = mount.getAttribute('data-reason');
+        var retryBtn = mount.querySelector('.viewer-retry');
+        window.__results.bogus = {
+          done: true,
+          loadOk: loadOk,                 // expect false
+          reason: reason,                 // expect a diagnostic string
+          hasRetry: !!retryBtn
+        };
+        log('bogus: ' + JSON.stringify(window.__results.bogus));
+
+        // Now exercise Retry: swap the failed step for a real car by calling
+        // show directly (mirrors what the Retry button does), then confirm the
+        // diagnostic clears and a model is present.
+        if (retryBtn) {
+          var okReal = await window.Viewer.show(realCar);
+          await new Promise(function (r) { setTimeout(r, 60); });
+          var reasonAfter = mount.getAttribute('data-reason');
+          var dbg = window.Viewer.__debug();
+          window.__results.retry = {
+            done: true,
+            recoveredLoadOk: okReal,           // expect true
+            reasonCleared: !reasonAfter,       // expect true
+            modelPresent: dbg.modelPresent     // expect true
+          };
+          log('retry: ' + JSON.stringify(window.__results.retry));
+        }
+      } catch (e) {
+        window.__results.errors.push('bogus/retry threw: ' + e.message);
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

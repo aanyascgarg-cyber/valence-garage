@@ -1,0 +1,3923 @@
+/* ============================================================
+   VALENCE GARAGE. Complete design system. v5 FINAL.
+   Dark luxury hypercar configurator. Cool teal glass, gold accents.
+   Atmosphere: realistic volumetric teal fog (js/fog.js) behind the
+   whole app; glass sheets with gold hairlines float on top. Oxblood
+   survives only inside the spec card as a signature.
+   ============================================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+  /* Cool teal atmosphere base */
+  --void: #04090B;
+  --abyss: #07161B;
+  --teal-fog: #17545F;
+  --teal-glow: #2C96AA;
+  --ice: #9FE8F0;
+
+  /* Oxblood retained ONLY for the spec-card signature */
+  --oxblood-deep: #1C0808;
+  --oxblood: #3E1212;
+
+  /* Gold interactive accent language (unchanged) */
+  --gold: #C9A84C;
+  --accent: #C9A84C;
+  --champagne: #E8D5A0;
+  --cognac: #E8C8B4;
+  --porcelain: #FAF4F0;
+  --crimson: #A02020;
+  --ruby: #C03030;
+
+  --hairline: rgba(201, 168, 76, 0.14);
+  --hairline-strong: rgba(201, 168, 76, 0.35);
+  --inner-top: inset 0 1px 0 rgba(159, 232, 240, 0.06);
+
+  /* v6 glass: brighter champagne borders and a lighter fill so panels READ
+     on the busy space image. Top edge highlight baked into the shadow. */
+  --glass-border: rgba(232, 213, 160, 0.28);
+  --glass-fill: rgba(16, 24, 30, 0.5);
+  --glass-fill-strong: rgba(12, 20, 26, 0.62);
+  --glass-blur: blur(18px) saturate(1.15);
+  --glass-top-hi: inset 0 1px 0 rgba(255, 250, 235, 0.14);
+  --glass-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.6),
+    0 2px 10px rgba(0, 0, 0, 0.4),
+    var(--glass-top-hi);
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-ui: 'Montserrat', system-ui, sans-serif;
+  --font-accent: 'Cormorant Garamond', Georgia, serif;
+
+  --col-max: 480px;
+  --side-pad: 20px;
+  --bottom-pad: 110px;
+  --radius: 16px;
+  --tab-h: 62px;
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  background: var(--void);
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-weight: 300;
+  color: var(--porcelain);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ---------- Atmosphere (v6 CORRECTED layering) ----------
+   The user-verified stacking on BOTH Garage and Build:
+     bottom  = assets/space.webp covering the ENTIRE viewport (fixed cover),
+               with a dark vignette so it stays subtle and text stays AA;
+     middle  = the teal volumetric fog (js/fog.js on #fog-canvas), CONSTRAINED
+               by CSS to a column-width vertical strip centered behind the app
+               content, its horizontal edges feathered away with a mask so it
+               has no hard edges and reads as a soft backdrop behind the glass;
+     top     = the glass sheets / app content.
+   Advisor stays PURE BLACK full page: no space image, no fog.
+
+   Layer z-order: space ::before (z 0) < fog canvas (z 1) < app content (z 2).
+   The space image is bound to the active screen's own ::before (a display:none
+   screen paints no pseudo-element), so it is present on Garage and Build and
+   absent on Advisor with zero JS. The single body-level fog canvas is hidden on
+   Advisor via :has() (the same modern selector this sheet already uses on
+   #hero-stage), since the canvas lives outside #app and cannot be reached by a
+   per-screen rule. */
+
+/* The teal fog canvas is fixed and full-viewport in JS (js/fog.js, untouched).
+   CSS clamps it to a centered column-width strip and feathers both horizontal
+   edges with a mask so it sits softly BEHIND the app content column. It sits at
+   z 1, ABOVE the space image (z 0) and BELOW the app content (z 2). */
+#fog-canvas {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  /* Column width with generous bleed past the content column so the fog reads
+     as a wide backdrop, not a hard-edged panel. Feathered by the mask below.
+     js/fog.js sets an inline style.width/height on the canvas (full viewport),
+     so these MUST win with !important to clamp the fog to a centered column. */
+  width: min(150vw, 760px) !important;
+  height: 100vh !important;
+  pointer-events: none;
+  display: block;
+  /* Tuned so the glass widgets stay readable over the fog. */
+  opacity: 0.72;
+  /* Feather both horizontal edges to nothing (no hard vertical seams). */
+  -webkit-mask-image: linear-gradient(90deg,
+    transparent 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 78%, transparent 100%);
+  mask-image: linear-gradient(90deg,
+    transparent 0%, rgba(0,0,0,1) 22%, rgba(0,0,0,1) 78%, transparent 100%);
+}
+
+/* Desktop: wider content column, so widen the fog strip and its bleed. */
+@media (min-width: 900px) {
+  #fog-canvas {
+    width: min(96vw, 1360px) !important;
+  }
+}
+
+/* Advisor is pure black: hide the fog canvas entirely there. The canvas is a
+   body-level element outside #app, so it cannot be masked by a per-screen
+   ::before; :has() is the only non-JS hook (already used on #hero-stage). */
+body:has(#screen-advisor.active) #fog-canvas {
+  display: none;
+}
+
+/* ---- Full-page space image, bound to the active screen's own ::before ----
+   Present on Garage AND Build (both paint this layer when active); absent on
+   Advisor. Fixed, covers the whole viewport at z 0, under the fog (z 1) and the
+   app content (z 2). A display:none screen paints no ::before, so this needs no
+   JS and no :has(). */
+#screen-garage::before,
+#screen-build::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Space planets HUD image, full-viewport cover, with a dark vignette so it
+     stays subtle and text stays AA over the busiest region. */
+  background:
+    radial-gradient(ellipse 120% 90% at 50% 40%,
+      rgba(4, 8, 11, 0.42) 0%,
+      rgba(4, 8, 11, 0.58) 58%,
+      rgba(3, 6, 8, 0.8) 100%),
+    linear-gradient(180deg, rgba(4, 8, 11, 0.5) 0%, rgba(4, 8, 11, 0.34) 30%, rgba(3, 6, 8, 0.74) 100%),
+    url("assets/space.webp") center center / cover no-repeat,
+    #04080B;
+}
+
+/* v8: Build gets its own atmosphere, THE WORKSHOP: the atelier hall
+   (key art generated for this app: black hypercars, gold marble panel,
+   teal haze). Heavier vignette than Garage so the glass controls and
+   the live 3D stage stay unmistakably in front; the fog canvas keeps
+   breathing over it at z 1. Garage keeps the space HUD image above. */
+#screen-build::before {
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 36%,
+      rgba(4, 8, 11, 0.5) 0%,
+      rgba(4, 8, 11, 0.66) 58%,
+      rgba(3, 6, 8, 0.88) 100%),
+    linear-gradient(180deg, rgba(4, 8, 11, 0.44) 0%, rgba(4, 8, 11, 0.4) 30%, rgba(3, 6, 8, 0.85) 100%),
+    url("assets/atelier.webp") center 30% / cover no-repeat,
+    #04080B;
+}
+
+/* Advisor: pure black stage (#000 to #050505) with a faint gold floor glow
+   rising from the bottom. Opaque; no space image, no fog. */
+#screen-advisor::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 90% 42% at 50% 118%,
+      rgba(201, 168, 76, 0.16) 0%,
+      rgba(201, 168, 76, 0.05) 40%,
+      transparent 72%),
+    linear-gradient(180deg, #000000 0%, #030303 60%, #050505 100%);
+}
+
+#noise-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 600 600' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+}
+
+/* ---------- App shell ---------- */
+#app {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: var(--col-max);
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+/* ---------- Screens ---------- */
+.screen {
+  display: none;
+  padding: 0 var(--side-pad);
+  padding-top: max(28px, env(safe-area-inset-top));
+  padding-bottom: calc(var(--bottom-pad) + env(safe-area-inset-bottom));
+}
+
+.screen.active {
+  display: block;
+  animation: screen-in 240ms ease both;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- Type primitives ---------- */
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.62);
+}
+
+.display-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-style: italic;
+  color: var(--porcelain);
+  letter-spacing: -0.01em;
+  line-height: 1.06;
+}
+
+.tagline {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(232, 200, 180, 0.5);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+
+.hairline {
+  height: 1px;
+  border: 0;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--hairline-strong),
+    transparent);
+}
+
+/* ---------- Masthead ---------- */
+.masthead {
+  padding: 8px 0 0;
+  margin-bottom: 22px;
+}
+
+.masthead .eyebrow {
+  margin-bottom: 10px;
+}
+
+.masthead .display-title {
+  font-size: 40px;
+  margin-bottom: 6px;
+}
+
+.masthead .tagline {
+  font-size: 16px;
+  margin-bottom: 18px;
+}
+
+.masthead.compact .display-title {
+  font-size: 32px;
+}
+
+.masthead .hairline {
+  margin-top: 4px;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+.panel,
+#chart-panel,
+#eng-panel,
+.garage-card,
+#car-stage,
+.glass-sheet {
+  background:
+    linear-gradient(180deg, rgba(255, 250, 235, 0.05) 0%, transparent 18%),
+    radial-gradient(ellipse 90% 80% at 20% 100%,
+      rgba(44, 150, 170, 0.12) 0%, transparent 62%),
+    var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.panel {
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.panel-eyebrow {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.55);
+  margin-bottom: 14px;
+}
+
+/* ============================================================
+   GOLD BADGE ICON FAMILY (v6)
+   One jewelry-grade family used everywhere: circular badge, radial gold
+   gradient (champagne top-left to deep gold bottom-right), 1px champagne
+   rim, soft inner glow, near-black glyph. Sizes 34 to 40px. The gradient
+   disc and inner glow are painted in CSS on .gbadge; the glyph is an inline
+   SVG stroked in the near-black void color. Consistent weight everywhere.
+   ============================================================ */
+.gbadge {
+  --badge-size: 36px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border-radius: 50%;
+  /* champagne top-left to deep gold bottom-right, with a lit highlight */
+  background:
+    radial-gradient(circle at 32% 28%,
+      #FBF1D2 0%,
+      #EAD59F 22%,
+      #D8B45E 48%,
+      #B58A34 78%,
+      #8C6522 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 251, 236, 0.85),
+    inset 0 -2px 4px rgba(90, 62, 18, 0.55),
+    inset 0 0 7px rgba(255, 240, 200, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 12px rgba(201, 168, 76, 0.28);
+  /* 1px champagne rim */
+  outline: 1px solid rgba(245, 232, 194, 0.7);
+  outline-offset: -1px;
+}
+
+.gbadge svg {
+  position: relative;
+  width: 56%;
+  height: 56%;
+  color: #1A1206;               /* near-black void glyph */
+  stroke: #1A1206;
+  filter: drop-shadow(0 1px 0 rgba(255, 248, 224, 0.5));
+}
+
+.gbadge svg [fill]:not([fill="none"]) { fill: #1A1206; }
+
+/* Dim state (inactive tabs, disabled affordances) drops the whole badge to
+   45 percent presence without losing its identity. */
+.gbadge.dim {
+  filter: saturate(0.7) brightness(0.7);
+  opacity: 0.45;
+}
+
+/* Size variants */
+.gbadge.sm { --badge-size: 34px; }
+.gbadge.lg { --badge-size: 40px; }
+
+/* ---- Contextual badge sizing where the badge replaces an older icon slot.
+   These keep the badge identity while fitting each host (tab, readout,
+   medallion, chevron). Glyph stays at 56% of the disc everywhere. ---- */
+
+/* Tab bar badges: compact, brighten when the tab is active, dim when not. */
+.tab .gbadge.tab-ico {
+  --badge-size: 30px;
+  width: var(--badge-size);
+  height: var(--badge-size);
+}
+.tab:not(.active) .gbadge.tab-ico {
+  filter: saturate(0.72) brightness(0.66);
+  opacity: 0.45;
+}
+.tab.active .gbadge.tab-ico {
+  filter: brightness(1.06);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 251, 236, 0.9),
+    inset 0 -2px 4px rgba(90, 62, 18, 0.55),
+    inset 0 0 7px rgba(255, 240, 200, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 16px rgba(201, 168, 76, 0.5);
+}
+
+/* Readout stat chips: 30px badge in place of the old ringed icon. */
+.ro-ico.gbadge {
+  --badge-size: 30px;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border: 0;              /* drop the old outline ring */
+  box-shadow:
+    inset 0 1px 1px rgba(255, 251, 236, 0.85),
+    inset 0 -2px 4px rgba(90, 62, 18, 0.55),
+    inset 0 0 7px rgba(255, 240, 200, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 12px rgba(201, 168, 76, 0.28);
+}
+.ro-ico.gbadge svg {
+  width: 56%;
+  height: 56%;
+}
+
+/* Spec card medallions: reuse the 54px ring footprint as a full gold badge. */
+.sc-ring.gbadge {
+  --badge-size: 54px;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  border: 0;
+}
+.sc-ring.gbadge .sc-glyph {
+  width: 56%;
+  height: 56%;
+  color: #1A1206;
+  stroke: #1A1206;
+}
+
+/* Engineering chevron badge: small, rotates with the panel like the old chev. */
+#eng-toggle .chev.gbadge {
+  --badge-size: 28px;
+  width: var(--badge-size);
+  height: var(--badge-size);
+  transition: transform 300ms ease;
+}
+#eng-toggle .chev.gbadge svg {
+  width: 58%;
+  height: 58%;
+}
+#eng-toggle[aria-expanded="true"] .chev.gbadge {
+  transform: rotate(180deg);
+}
+
+/* Icon buttons that now host a badge (back arrow, send, close): the badge IS
+   the visible control, so strip the host button chrome. */
+#btn-back-arch,
+#btn-send,
+#btn-close-spec {
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#btn-back-arch .gbadge,
+#btn-send .gbadge {
+  --badge-size: 40px;
+}
+#btn-close-spec .gbadge {
+  --badge-size: 34px;
+}
+#btn-back-arch:hover .gbadge,
+#btn-send:hover .gbadge,
+#btn-close-spec:hover .gbadge {
+  filter: brightness(1.08);
+}
+#btn-send:disabled .gbadge {
+  filter: saturate(0.7) brightness(0.7);
+  opacity: 0.5;
+}
+#btn-send svg,
+#btn-back-arch svg,
+#btn-close-spec svg {
+  width: 56%;
+  height: 56%;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 13px 26px;
+  border: 0;
+  border-radius: 40px;
+  background: linear-gradient(180deg, var(--champagne) 0%, var(--gold) 62%, #A9863A 100%);
+  color: var(--void);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 22px rgba(201, 168, 76, 0.18), var(--inner-top);
+  transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 8px 28px rgba(201, 168, 76, 0.28);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-primary.full {
+  display: flex;
+  width: 100%;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 13px 24px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 40px;
+  background: transparent;
+  color: var(--gold);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
+  color: var(--champagne);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--gold);
+  cursor: pointer;
+  flex: none;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.btn-icon:hover {
+  border-color: rgba(201, 168, 76, 0.4);
+  color: var(--champagne);
+}
+
+.btn-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Save button derives from the active accent */
+#btn-save {
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--accent) 45%, #FFFFFF) 0%,
+    var(--accent) 62%,
+    color-mix(in srgb, var(--accent) 68%, #000000) 100%);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 22%, transparent), var(--inner-top);
+}
+
+#btn-save:hover {
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* saved flash */
+#btn-save.saved-flash {
+  background: linear-gradient(180deg, #EFE4BE 0%, var(--champagne) 100%);
+  color: var(--void);
+  box-shadow: 0 0 26px rgba(232, 213, 160, 0.5), var(--inner-top);
+}
+
+/* ============================================================
+   GLASS DASHBOARD (#screen-garage rebuilt)
+   ============================================================ */
+#dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.glass-sheet {
+  padding: 18px;
+}
+
+/* ---------- Hero car widget (v6: night arch-portal scene on a canvas) ---------- */
+#dash-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 18px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* The stage: ~4:3 rounded window that heroscene.js paints its canvas into,
+   UNDER the car image / fallback silhouette. overflow hidden clips the scene. */
+#hero-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* Deep-blue base so the widget reads premium before the canvas paints and
+     if the canvas ever fails; the scene canvas overlays this. */
+  background: linear-gradient(180deg, #0A1622 0%, #0D1E2E 55%, #12283A 100%);
+  box-shadow: inset 0 1px 0 rgba(159, 232, 240, 0.08),
+              inset 0 0 40px rgba(0, 0, 0, 0.4);
+}
+
+/* heroscene.js inserts canvas.hero-scene-canvas as the stage's first child at
+   z-index 0; the fallback silhouette sits above it. */
+#hero-stage .hero-scene-canvas {
+  z-index: 0;
+}
+
+/* heroscene composites the actual car snapshot INTO the canvas, so the DOM
+   #hero-car-img would double it. Once the scene canvas exists we hide the DOM
+   car image and let the canvas own the car. The silhouette fallback still
+   shows over the scene when there is no snapshot (heroscene draws no car). */
+#hero-stage:has(.hero-scene-canvas) #hero-car-img {
+  display: none !important;
+}
+
+#hero-car-img,
+#hero-fallback {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  align-self: flex-end;
+  margin-bottom: 6%;
+}
+
+#hero-car-img {
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 22px rgba(0, 0, 0, 0.6));
+}
+
+#hero-fallback svg,
+#hero-fallback img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.55));
+}
+
+#hero-meta {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+#hero-name {
+  font-size: 26px;
+  line-height: 1.08;
+}
+
+#hero-sub {
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+#hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hero-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 76px;
+  padding: 8px 12px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 12px;
+  background: rgba(9, 22, 28, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.hero-chip-v {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--champagne);
+}
+
+.hero-chip-l {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.62);
+}
+
+#btn-hero-cta {
+  margin-top: 8px;
+}
+
+/* ---------- Performance snapshot ---------- */
+#dash-stats #dash-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- Advisor quick-entry ---------- */
+#dash-advisor {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+}
+
+#dash-orb {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 40px;
+}
+
+/* The dashboard quick-entry orb is a pure-CSS decorative sphere (no canvas
+   behind it), so it needs its OWN lit core and centered halo. The advisor
+   screen orb dims .orb-core / hollows .orb-glow to defer to the canvas orb;
+   restore full brightness here so this little orb still reads as a gold sphere. */
+#dash-orb .orb-glow {
+  inset: -18%;
+  background: radial-gradient(circle at 50% 50%,
+    color-mix(in srgb, var(--accent) 34%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 16%, transparent) 40%,
+    transparent 70%);
+}
+
+#dash-orb .orb-core {
+  inset: 22%;
+  filter: blur(1px);
+  opacity: 1;
+  background: radial-gradient(circle at 40% 36%,
+    rgba(255, 250, 235, 0.85) 0%,
+    var(--champagne) 30%,
+    var(--accent) 68%,
+    transparent 100%);
+}
+
+#dash-advisor-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#dash-advisor-body .eyebrow {
+  color: rgba(201, 168, 76, 0.72);
+}
+
+#dash-advisor-hint {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.35;
+  color: rgba(232, 200, 180, 0.72);
+}
+
+#btn-dash-advisor {
+  flex: none;
+  min-height: 40px;
+  padding: 10px 22px;
+}
+
+/* ---------- Saved builds gallery ---------- */
+.dash-builds-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dash-builds-head .panel-eyebrow {
+  margin-bottom: 0;
+}
+
+.dash-builds-head #btn-new-build {
+  width: auto;
+  min-height: 38px;
+  margin: 0;
+  padding: 9px 18px;
+}
+
+/* ============================================================
+   GARAGE
+   ============================================================ */
+#garage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.garage-card {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+.garage-card:hover {
+  border-color: rgba(201, 168, 76, 0.3);
+}
+
+.garage-card:active {
+  transform: scale(0.995);
+}
+
+.garage-card-art {
+  flex: none;
+  width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 62%,
+      rgba(44, 150, 170, 0.28) 0%, transparent 70%);
+}
+
+.garage-card-art img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.garage-card-art svg,
+.garage-car {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.garage-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+}
+
+.garage-card-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--porcelain);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.garage-card-arch {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.55);
+}
+
+.garage-card-stats {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(232, 200, 180, 0.72);
+  margin-top: 4px;
+}
+
+.garage-card-remove {
+  flex: none;
+  align-self: flex-start;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.4);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.garage-card-remove:hover {
+  color: var(--cognac);
+  border-color: var(--hairline);
+}
+
+.garage-card-remove.armed {
+  color: var(--porcelain);
+  background: rgba(192, 48, 48, 0.18);
+  border-color: var(--ruby);
+}
+
+/* Empty state */
+#garage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 16px 20px;
+}
+
+#garage-empty .ornament {
+  font-size: 54px;
+  line-height: 1;
+  color: rgba(201, 168, 76, 0.22);
+  margin-bottom: 22px;
+}
+
+#garage-empty .empty-copy {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 18px;
+  line-height: 1.5;
+  color: rgba(232, 200, 180, 0.55);
+  max-width: 300px;
+  margin-bottom: 28px;
+}
+
+/* #btn-new-build now lives in .dash-builds-head, styled there. */
+
+/* ============================================================
+   CAR PICKER CARDS (#car-grid, app.js injects button.car-card)
+   ============================================================ */
+#car-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.car-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 18px 16px 16px;
+  text-align: left;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 235, 0.05) 0%, transparent 18%),
+    radial-gradient(ellipse 90% 80% at 20% 100%,
+      rgba(44, 150, 170, 0.12) 0%, transparent 62%),
+    var(--glass-fill);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  transition: border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.car-card:hover {
+  border-color: rgba(201, 168, 76, 0.32);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), var(--inner-top);
+}
+
+.car-card:active,
+.car-card.active {
+  border-color: var(--gold);
+  transform: translateY(-2px);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(201, 168, 76, 0.5),
+    0 0 22px rgba(201, 168, 76, 0.22),
+    var(--inner-top);
+}
+
+.car-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--porcelain);
+  line-height: 1.08;
+}
+
+.car-sub {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.3;
+  color: rgba(232, 200, 180, 0.6);
+  flex: 1 1 auto;
+}
+
+.car-stats {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.09em;
+  color: rgba(201, 168, 76, 0.66);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   CONFIGURATOR HEADER
+   ============================================================ */
+.config-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0 16px;
+}
+
+#build-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 26px;
+  color: color-mix(in srgb, var(--accent) 40%, var(--porcelain));
+  caret-color: var(--accent);
+  padding: 2px 0;
+  transition: color 200ms ease, border-color 150ms ease;
+  outline: none;
+}
+
+#build-name:focus {
+  border-bottom-color: var(--hairline-strong);
+}
+
+#build-arch-label {
+  flex: none;
+  text-align: right;
+  max-width: 40%;
+}
+
+/* ============================================================
+   CAR STAGE
+   ============================================================ */
+#car-stage {
+  position: relative;
+  padding: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+#car-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 46% at 50% 58%,
+      color-mix(in srgb, var(--accent) 16%, transparent) 0%,
+      transparent 60%),
+    radial-gradient(ellipse 70% 60% at 50% 62%,
+      rgba(44, 150, 170, 0.28) 0%,
+      rgba(23, 84, 95, 0.12) 45%,
+      transparent 70%);
+  pointer-events: none;
+  transition: background 300ms ease;
+}
+
+#viewer-mount {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 240px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 72% 62% at 50% 58%,
+      rgba(44, 150, 170, 0.22) 0%,
+      rgba(9, 22, 28, 0.32) 46%,
+      transparent 74%),
+    rgba(5, 12, 15, 0.42);
+}
+
+#viewer-mount canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Gold shimmer sweep while the model loads */
+#viewer-mount.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(115deg,
+    transparent 30%,
+    rgba(232, 213, 160, 0.14) 48%,
+    rgba(232, 213, 160, 0.26) 50%,
+    rgba(232, 213, 160, 0.14) 52%,
+    transparent 70%);
+  background-size: 220% 100%;
+  animation: viewer-shimmer 1.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes viewer-shimmer {
+  0%   { background-position: 140% 0; }
+  100% { background-position: -40% 0; }
+}
+
+.stage-hairline {
+  position: relative;
+  z-index: 1;
+  height: 1px;
+  margin-top: 8px;
+  background: linear-gradient(90deg,
+    transparent, var(--hairline-strong), transparent);
+}
+
+/* ============================================================
+   READOUTS
+   ============================================================ */
+#readouts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.ro {
+  padding: 14px 14px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 250, 235, 0.05) 0%, transparent 20%),
+    radial-gradient(ellipse 100% 90% at 15% 0%,
+      rgba(44, 150, 170, 0.1) 0%, transparent 62%),
+    var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+}
+
+.ro-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ro-ico {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--accent);
+  box-shadow: inset 0 0 10px color-mix(in srgb, var(--accent) 14%, transparent);
+  transition: color 200ms ease, border-color 200ms ease;
+}
+
+.ro-ico svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ro-value {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--champagne);
+  transition: color 200ms ease;
+}
+
+.ro-value.at-limit {
+  color: var(--ruby);
+}
+
+.ro-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.5);
+  margin-top: 8px;
+}
+
+/* ============================================================
+   UNIT TOGGLE
+   ============================================================ */
+#unit-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin-bottom: 18px;
+  border: 1px solid var(--hairline);
+  border-radius: 30px;
+  padding: 3px;
+  background: rgba(7, 18, 23, 0.5);
+}
+
+#unit-toggle button {
+  min-height: 34px;
+  padding: 6px 18px;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.55);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+#unit-toggle button.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--champagne);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* ============================================================
+   CONTROLS
+   ============================================================ */
+#controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.control-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.control-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.62);
+}
+
+.control-val {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--champagne);
+}
+
+/* ---------- Range sliders ---------- */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(201, 168, 76, 0.25);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(201, 168, 76, 0.25);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%,
+    color-mix(in srgb, var(--accent) 40%, #FFFFFF) 0%,
+    var(--accent) 62%,
+    color-mix(in srgb, var(--accent) 70%, #000000) 100%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent), 0 1px 3px rgba(0, 0, 0, 0.5);
+  border: 0;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%,
+    color-mix(in srgb, var(--accent) 40%, #FFFFFF) 0%,
+    var(--accent) 62%,
+    color-mix(in srgb, var(--accent) 70%, #000000) 100%);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+input[type="range"]:focus {
+  outline: none;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 16px rgba(232, 213, 160, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+input[type="range"]:focus::-moz-range-thumb {
+  box-shadow: 0 0 16px rgba(232, 213, 160, 0.7), 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+/* ---------- Segmented controls ---------- */
+.segmented {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 8px;
+}
+
+.segmented.five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.segmented.four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.segmented button {
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-radius: 30px;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.6);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.segmented.five button {
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.segmented button:hover {
+  border-color: rgba(201, 168, 76, 0.45);
+  color: var(--cognac);
+}
+
+.segmented button.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--accent);
+  color: var(--champagne);
+}
+
+/* ---------- Swatches ---------- */
+.swatch-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.swatch {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--sw);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.swatch:hover {
+  transform: scale(1.06);
+}
+
+.swatch.active {
+  box-shadow: 0 0 0 2px var(--void), 0 0 0 4px var(--accent), 0 0 14px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* ============================================================
+   PERFORMANCE STAT BARS (replaces the radar; app.js fills #stat-bars)
+   ============================================================ */
+#stat-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "label value"
+    "track track";
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+
+.stat-label {
+  grid-area: label;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.72);
+}
+
+.stat-value {
+  grid-area: value;
+  justify-self: end;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--champagne);
+}
+
+.stat-track {
+  grid-area: track;
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(201, 168, 76, 0.12);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.stat-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--champagne) 100%);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 34%, transparent);
+  transition: width 300ms ease;
+}
+
+#chart-caption {
+  margin-top: 12px;
+  text-align: center;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: rgba(232, 200, 180, 0.62);
+}
+
+/* ============================================================
+   ENGINEERING PANEL
+   ============================================================ */
+#eng-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+#eng-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 52px;
+  padding: 16px 18px;
+  border: 0;
+  background: transparent;
+  color: rgba(201, 168, 76, 0.7);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+#eng-toggle .chev {
+  width: 18px;
+  height: 18px;
+  color: var(--gold);
+  transition: transform 300ms ease;
+}
+
+#eng-toggle[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+
+#eng-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 300ms ease;
+}
+
+#eng-body.open {
+  max-height: 720px;
+}
+
+.eng-inner {
+  padding: 0 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.eng-block {
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+
+.eng-block:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.eng-title {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.6);
+  margin-bottom: 6px;
+}
+
+.eng-formula {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.3;
+  color: var(--champagne);
+  margin-bottom: 4px;
+}
+
+.eng-sub {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  color: rgba(232, 200, 180, 0.65);
+}
+
+.eng-sub.traction-limited {
+  color: var(--champagne);
+}
+
+/* ============================================================
+   ACTION ROW
+   ============================================================ */
+.action-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.action-row .btn-primary,
+.action-row .btn-secondary {
+  width: 100%;
+}
+
+/* ============================================================
+   ADVISOR
+   ============================================================ */
+/* ---------- Advisor: voice-first, pure black stage (v6) ----------
+   Two states toggled by advisor.js via classes on #screen-advisor:
+     .state-hero  default. Title top center, huge tappable orb centered,
+                  #voice-live under it, #btn-keyboard bottom center. Chips,
+                  thread and input row are hidden.
+     .state-chat  after first message. Orb compacts to ~56px top center (still
+                  spinning), title hides, chips + thread + input visible.
+   The pure-black background comes from #screen-advisor::before (see Atmosphere). */
+
+#advisor-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 30px 0 26px;
+  transition: padding 320ms ease;
+}
+
+/* ===== HERO STATE: voice-first full-screen orb ===== */
+#screen-advisor.state-hero #advisor-hero {
+  min-height: calc(100vh - var(--bottom-pad) - 60px);
+  justify-content: center;
+  padding: 24px 0;
+}
+
+/* Title sits above the orb, top-center feel within the centered column. */
+#screen-advisor.state-hero #advisor-title {
+  order: 1;
+  margin-bottom: 30px;
+}
+
+/* Hero-state orb is the focal point: much larger than the 240px base, matching
+   the voice ref. min(72vw, 400px) on mobile; a fixed large square on desktop. */
+#screen-advisor.state-hero #advisor-orb {
+  order: 2;
+  width: min(72vw, 400px);
+  height: min(72vw, 400px);
+  margin: 0 auto;
+}
+@media (min-width: 900px) {
+  #screen-advisor.state-hero #advisor-orb {
+    width: 400px;
+    height: 400px;
+  }
+}
+
+#screen-advisor.state-hero #voice-live {
+  order: 3;
+}
+
+#screen-advisor.state-hero #advisor-status {
+  order: 4;
+}
+
+#screen-advisor.state-hero #btn-keyboard {
+  order: 5;
+  margin-top: 40px;
+}
+
+/* In hero state, chips / thread / consult button / input row are all hidden;
+   only the orb, title, live line, status and keyboard affordance show. */
+#screen-advisor.state-hero #advisor-chips,
+#screen-advisor.state-hero #advisor-thread,
+#screen-advisor.state-hero #btn-advise {
+  display: none;
+}
+
+/* The input row stays hidden until the keyboard affordance (or a focus
+   request) reveals it; advisor.js adds .revealed / #screen-advisor.input-open. */
+#screen-advisor.state-hero #advisor-input-row {
+  display: none;
+}
+#screen-advisor.state-hero.input-open #advisor-input-row,
+#screen-advisor.state-hero #advisor-input-row.revealed {
+  display: flex;
+}
+
+/* ===== CHAT STATE: proper centered chat layout =====
+   The whole screen becomes a full-height flex column capped at a 640px reading
+   width, centered. Order top to bottom: compact orb (hero) at the top center,
+   then the scrollable thread taking the remaining height, then chips, then the
+   input row pinned at the bottom. This holds at BOTH 375 and 1365 widths. */
+#screen-advisor.state-chat {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  /* Clear the floating tab bar at the bottom; keep the top safe inset. */
+  padding-top: max(20px, env(safe-area-inset-top));
+  padding-bottom: calc(var(--bottom-pad) + env(safe-area-inset-bottom));
+}
+
+#screen-advisor.state-chat #advisor-hero {
+  flex: none;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 0 16px;
+  min-height: 0;
+}
+
+/* Thread takes all remaining height and scrolls; chips + input stay in view. */
+#screen-advisor.state-chat #advisor-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 12px;
+}
+
+#screen-advisor.state-chat #advisor-chips {
+  flex: none;
+  margin: 0 0 12px;
+}
+
+#screen-advisor.state-chat #advisor-input-row {
+  flex: none;
+  margin-top: 0;
+}
+
+/* The chip-driven Consult button belongs to the hero flow; the chat state uses
+   the typed input row, so retire it there to keep the column clean. */
+#screen-advisor.state-chat #btn-advise {
+  display: none;
+}
+
+#screen-advisor.state-chat #advisor-title {
+  display: none;
+}
+
+#screen-advisor.state-chat #advisor-orb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+}
+
+#screen-advisor.state-chat #advisor-orb .orb-glow {
+  inset: -14%;
+}
+
+#screen-advisor.state-chat #voice-live {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* In chat state the keyboard affordance is retired (input row is present). */
+#screen-advisor.state-chat #btn-keyboard {
+  display: none;
+}
+
+#screen-advisor.state-chat #advisor-input-row {
+  display: flex;
+}
+
+/* ===== Resilience layer =====
+   advisor.js's typed-send path adds the legacy .compact class to #advisor-hero
+   (it does not always flip #screen-advisor to .state-chat). To guarantee the
+   thread, chips and input are visible and the orb compacts the moment a real
+   conversation starts by ANY path, mirror the chat-state layout whenever the
+   hero is compacted, even if the screen is still tagged .state-hero. The
+   thread / chips / input row all follow #advisor-hero in the DOM, so the plain
+   sibling combinator (no fragile :has()) drives them reliably. */
+#screen-advisor #advisor-hero.compact ~ #advisor-thread,
+#screen-advisor #advisor-hero.compact ~ #advisor-chips,
+#screen-advisor #advisor-hero.compact ~ #advisor-input-row {
+  display: flex;
+}
+
+#screen-advisor #advisor-hero.compact {
+  min-height: 0;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 12px 0 16px;
+}
+
+#screen-advisor #advisor-hero.compact #advisor-orb {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+}
+
+#screen-advisor #advisor-hero.compact #advisor-orb .orb-glow {
+  inset: -14%;
+}
+
+#screen-advisor #advisor-hero.compact #btn-keyboard,
+#screen-advisor #advisor-hero.compact #advisor-title {
+  display: none;
+}
+
+/* ---------- Advisor orb ----------
+   Swirling ribbon-of-light orb echoing the voice-screen ref, in gold. The
+   swirling trails are painted by js/orb.js on #orb-canvas (additive light).
+   Behind the canvas sit two pure-CSS layers so a luminous sphere is always
+   present even when the canvas is frozen (reduced motion): a wide soft outer
+   glow bloom (.orb-glow) and a compact champagne core (.orb-core). */
+#advisor-orb {
+  position: relative;
+  flex: none;
+  width: 240px;
+  height: 240px;
+  margin: 0 auto;
+  cursor: pointer;
+  border-radius: 50%;
+  -webkit-tap-highlight-color: transparent;
+  transition: width 320ms ease, height 320ms ease, margin 320ms ease;
+}
+
+/* Keyboard focus ring for the tappable orb (role button). */
+#advisor-orb:focus-visible {
+  outline: 2px solid var(--champagne);
+  outline-offset: 8px;
+}
+
+.orb-glow,
+.orb-core {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Wide soft OUTER bloom only. The inner stops are transparent so the glow never
+   brightens the orb's center (the canvas orb owns a deliberately dark hollow
+   core); light lives only in the outer ring that bleeds past the sphere. */
+.orb-glow {
+  inset: -22%;
+  background: radial-gradient(circle at 50% 50%,
+    transparent 0%,
+    transparent 42%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 58%,
+    color-mix(in srgb, var(--accent) 12%, transparent) 72%,
+    transparent 88%);
+  animation: orb-breathe 5s ease-in-out infinite;
+}
+
+/* The rebuilt canvas orb (js/orb.js) has a deliberately DARK hollow center to
+   match the user's reference, so the old bright champagne core blob would fight
+   it. Reduce it to a barely-there champagne haze (very low opacity) that adds a
+   whisper of warmth without lighting up the hollow center. */
+.orb-core {
+  inset: 30%;
+  background: radial-gradient(circle at 50% 50%,
+    color-mix(in srgb, var(--champagne) 60%, transparent) 0%,
+    transparent 70%);
+  filter: blur(6px);
+  /* Static and near-invisible. No breathe animation: its keyframes drive opacity
+     up to ~1, which would override this and re-brighten the hollow center. */
+  opacity: 0.05;
+}
+
+#orb-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+@keyframes orb-breathe {
+  0%, 100% { transform: scale(1);    opacity: 0.92; }
+  50%      { transform: scale(1.05); opacity: 1; }
+}
+
+/* The Advisor's light is always GOLD. Build accents may repaint buttons and
+   bars, but the orb is the Advisor's identity and never inherits them. */
+#screen-advisor .orb-glow,
+#dash-orb .orb-glow {
+  background: radial-gradient(circle at 50% 50%,
+    transparent 0%,
+    transparent 42%,
+    rgba(201, 168, 76, 0.22) 58%,
+    rgba(201, 168, 76, 0.12) 72%,
+    transparent 88%);
+}
+
+#dash-orb .orb-glow {
+  inset: -18%;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(201, 168, 76, 0.34) 0%,
+    rgba(201, 168, 76, 0.16) 40%,
+    transparent 70%);
+}
+
+#dash-orb .orb-core {
+  background: radial-gradient(circle at 40% 36%,
+    rgba(255, 250, 235, 0.85) 0%,
+    var(--champagne) 30%,
+    var(--gold) 68%,
+    transparent 100%);
+}
+
+#advisor-hero .eyebrow {
+  margin-bottom: 10px;
+}
+
+#advisor-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  color: var(--porcelain);
+  max-width: 14ch;
+  transition: opacity 240ms ease;
+}
+
+/* ---------- Live transcript line under the orb ---------- */
+#voice-live {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 19px;
+  line-height: 1.4;
+  letter-spacing: 0.01em;
+  color: var(--champagne);
+  max-width: 26ch;
+  margin: 22px auto 0;
+  min-height: 1.4em;
+  text-shadow: 0 0 18px rgba(201, 168, 76, 0.28);
+}
+
+/* ---------- Keyboard affordance (badge + label), hero bottom-center ------ */
+#btn-keyboard {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 8px;
+  border: 0;
+  border-radius: 40px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+
+#btn-keyboard:hover {
+  background: rgba(201, 168, 76, 0.08);
+}
+
+#btn-keyboard .btn-keyboard-label {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232, 213, 160, 0.85);
+}
+
+/* ---------- Voice/TTS toggle badge (top-right of the advisor hero) ------- */
+.gbadge-btn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+#btn-voice {
+  position: absolute;
+  top: 6px;
+  right: 0;
+  z-index: 3;
+}
+
+/* Dim the voice badge until TTS is armed, brighten when pressed. */
+#btn-voice .gbadge {
+  filter: saturate(0.8) brightness(0.82);
+  transition: filter 150ms ease;
+}
+#btn-voice[aria-pressed="true"] .gbadge {
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 251, 236, 0.9),
+    inset 0 -2px 4px rgba(90, 62, 18, 0.55),
+    inset 0 0 7px rgba(255, 240, 200, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.45),
+    0 0 16px rgba(201, 168, 76, 0.5);
+}
+
+/* ---------- Chips ---------- */
+#advisor-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 6px 0 20px;
+}
+
+.chips-heading {
+  margin-bottom: 2px;
+  color: rgba(201, 168, 76, 0.72);
+}
+
+.chip-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chip-label {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.55);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 40px;
+  padding: 8px 18px;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-radius: 30px;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.6);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.chip:hover {
+  border-color: rgba(201, 168, 76, 0.45);
+  color: var(--cognac);
+}
+
+.chip.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  border-color: var(--accent);
+  color: var(--champagne);
+}
+
+/* ---------- Thread ---------- */
+#advisor-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.msg {
+  max-width: 85%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  letter-spacing: 0.01em;
+}
+
+/* On the PURE BLACK advisor stage the advisor bubble must READ clearly. Fill
+   about rgba(20,26,32,0.75) (a lifted near-black slate), a 1px gold hairline
+   all around, and champagne/porcelain text at AA on black. */
+.msg.advisor {
+  align-self: flex-start;
+  border: 1px solid rgba(201, 168, 76, 0.55);
+  border-left: 2px solid var(--gold);
+  border-radius: 4px 14px 14px 14px;
+  background: rgba(20, 26, 32, 0.75);
+  color: var(--porcelain);
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.5;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 250, 235, 0.06);
+}
+
+/* Nested nodes advisor.js injects (intro paragraph, mod list, confirmations)
+   inherit the porcelain text so every line stays legible on black. */
+.msg.advisor .msg-intro,
+.msg.advisor .msg-mods,
+.msg.advisor .msg-mods li {
+  color: var(--porcelain);
+}
+
+.msg.advisor .msg-intro {
+  margin: 0;
+}
+
+.msg.advisor .msg-mods {
+  margin: 10px 0 0;
+  padding-left: 1.1em;
+  font-family: var(--font-ui);
+  font-style: normal;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(250, 244, 240, 0.9);
+}
+
+.msg.advisor .msg-mods li {
+  margin-bottom: 6px;
+}
+
+/* User bubble: visibly present on black but dimmer than the advisor bubble. */
+.msg.user {
+  align-self: flex-end;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-radius: 14px 14px 4px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(232, 213, 160, 0.9);
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
+
+.btn-apply-mods {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: 12px;
+  padding: 9px 20px;
+  border: 0;
+  border-radius: 30px;
+  background: linear-gradient(180deg, var(--champagne) 0%, var(--gold) 100%);
+  color: var(--void);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: filter 150ms ease, opacity 150ms ease;
+}
+
+.btn-apply-mods:hover {
+  filter: brightness(1.05);
+}
+
+.btn-apply-mods:disabled {
+  opacity: 0.42;
+  cursor: default;
+  filter: none;
+}
+
+/* ---------- Advisor status (warmup) ---------- */
+#advisor-status {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.7);
+  margin-top: 12px;
+  animation: status-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes status-pulse {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; }
+}
+
+/* ---------- Advisor input row ---------- */
+#advisor-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+#advisor-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 44px;
+  padding: 12px 20px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 40px;
+  background:
+    linear-gradient(160deg, rgba(20, 52, 60, 0.4) 0%, rgba(7, 18, 23, 0.55) 100%);
+  color: var(--champagne);
+  caret-color: var(--champagne);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  outline: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+#advisor-input::placeholder {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(232, 200, 180, 0.42);
+}
+
+#advisor-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+#btn-send {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: linear-gradient(180deg, var(--champagne) 0%, var(--gold) 62%, #A9863A 100%);
+  color: var(--void);
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(201, 168, 76, 0.24), var(--inner-top);
+  transition: filter 150ms ease, transform 150ms ease;
+}
+
+#btn-send:hover {
+  filter: brightness(1.05);
+}
+
+#btn-send:active {
+  transform: translateY(1px);
+}
+
+#btn-send svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============================================================
+   TAB BAR
+   ============================================================ */
+#tabbar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 20;
+  width: calc(100% - 40px);
+  max-width: calc(var(--col-max) - 40px);
+  display: grid;
+  /* v10: the bar holds however many tabs exist (now five), one row. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: 40px;
+  background: rgba(9, 22, 28, 0.72);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55), var(--inner-top);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 46px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 30px;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.5);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+/* .tab-ico is now a gold badge (see the badge section). Legacy bare-svg sizing
+   removed so the badge sizing wins. */
+
+.tab-label {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tab.active {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+/* ============================================================
+   SPEC CARD OVERLAY
+   ============================================================ */
+#speccard-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(4, 9, 11, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: screen-in 220ms ease both;
+}
+
+#speccard {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 30px 26px 24px;
+  border: 1px solid rgba(201, 168, 76, 0.5);
+  border-radius: 18px;
+  outline: 1px solid rgba(201, 168, 76, 0.28);
+  outline-offset: 5px;
+  /* v8: the liquid-gold V key art lives behind the card, screen-blended
+     over the oxblood base so the gold glows through while the scrim
+     (top layer) keeps every text zone print-quality readable. */
+  background:
+    linear-gradient(180deg,
+      rgba(10, 3, 3, 0.42) 0%,
+      rgba(10, 3, 3, 0.72) 42%,
+      rgba(10, 3, 3, 0.9) 72%,
+      rgba(10, 3, 3, 0.95) 100%),
+    radial-gradient(ellipse 90% 60% at 50% 0%,
+      rgba(120, 24, 24, 0.4) 0%, transparent 60%),
+    url("assets/gold-v.webp") center 6% / 132% no-repeat,
+    linear-gradient(165deg, #1A0707 0%, #0A0303 100%);
+  background-blend-mode: normal, normal, screen, normal;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7), var(--inner-top);
+  text-align: center;
+}
+
+#btn-close-spec {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(232, 200, 180, 0.55);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+#btn-close-spec:hover {
+  color: var(--champagne);
+}
+
+#btn-close-spec svg {
+  width: 18px;
+  height: 18px;
+}
+
+.sc-eyebrow {
+  margin-bottom: 10px;
+}
+
+#sc-name {
+  font-size: 30px;
+  margin-bottom: 4px;
+}
+
+#sc-arch {
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+#sc-car-wrap {
+  position: relative;
+  width: 100%;
+  margin: 4px 0 10px;
+}
+
+#sc-car,
+#sc-car-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 400 / 170;
+}
+
+#sc-car-img {
+  object-fit: contain;
+  filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.55));
+}
+
+/* SVG has no UA [hidden] rule, so the empty silhouette box would still
+   occupy its aspect-ratio height under a real snapshot. Enforce it. */
+#sc-car[hidden] {
+  display: none;
+}
+
+#sc-setup {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.6);
+  margin-bottom: 22px;
+}
+
+.sc-medallions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 10px;
+  margin-bottom: 24px;
+}
+
+.sc-medal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sc-ring {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid rgba(201, 168, 76, 0.5);
+  box-shadow: inset 0 0 12px rgba(201, 168, 76, 0.1), var(--inner-top);
+}
+
+.sc-glyph {
+  width: 22px;
+  height: 22px;
+  color: rgba(201, 168, 76, 0.85);
+}
+
+.sc-v {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--champagne);
+}
+
+.sc-l {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.5);
+}
+
+.sc-footer {
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+}
+
+.sc-mono {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 44px;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 0 24px rgba(201, 168, 76, 0.4);
+}
+
+.sc-built {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(232, 200, 180, 0.6);
+  margin-top: 6px;
+}
+
+.sc-hint {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(201, 168, 76, 0.4);
+  margin-top: 10px;
+}
+
+/* ============================================================
+   RESPONSIVE / DESKTOP
+   ============================================================ */
+
+/* 700 to 899px: a wider single column, still centered and app-like. */
+@media (min-width: 700px) {
+  :root {
+    --col-max: 640px;
+  }
+  #app {
+    box-shadow: 0 0 120px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Hide scrollbars on narrow (touch) widths */
+@media (max-width: 699px) {
+  #app {
+    scrollbar-width: none;
+  }
+  #app::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* min-width 900px: a real desktop app, not a phone column. */
+@media (min-width: 900px) {
+  :root {
+    --col-max: 1120px;
+    --side-pad: 40px;
+  }
+
+  .masthead {
+    text-align: center;
+  }
+  .masthead .display-title {
+    font-size: 52px;
+  }
+  .masthead .hairline {
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Dashboard: 2-column glass grid (warm-dashboard ref, cool + gold).
+     Hero spans the left column full height; right column stacks stats and
+     the advisor widget; the builds gallery spans both columns below. */
+  #dashboard {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) minmax(0, 1.1fr);
+    grid-template-areas:
+      "hero  stats"
+      "hero  advisor"
+      "builds builds";
+    gap: 18px;
+    align-items: start;
+  }
+  #dash-hero    { grid-area: hero; height: 100%; }
+  #dash-stats   { grid-area: stats; }
+  #dash-advisor { grid-area: advisor; }
+  #dash-builds  { grid-area: builds; }
+
+  #dash-hero #hero-car-img,
+  #dash-hero #hero-fallback {
+    max-width: 460px;
+  }
+  #hero-name { font-size: 32px; }
+
+  /* Garage: a card grid instead of a stack. */
+  #garage-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  /* Car picker: wider grid. */
+  #car-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  /* ---- Two column configurator ----
+     LEFT: sticky viewer hero plus its readouts.
+     RIGHT: controls, chart, engineering, actions. */
+  #build-step-config {
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(0, 1.05fr);
+    grid-template-areas:
+      "head    head"
+      "stageL  controls";
+    column-gap: 32px;
+    align-items: start;
+  }
+
+  .config-head {
+    grid-area: head;
+  }
+
+  #config-left {
+    grid-area: stageL;
+    position: sticky;
+    top: 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #config-right {
+    grid-area: controls;
+    min-width: 0;
+  }
+
+  /* The viewer hero gets a taller stage on desktop. */
+  #car-stage {
+    margin-bottom: 14px;
+  }
+  #viewer-mount {
+    min-height: 420px;
+    aspect-ratio: 16 / 10;
+  }
+
+  #readouts {
+    grid-template-columns: repeat(4, 1fr);
+    margin-bottom: 0;
+  }
+  .ro-value {
+    font-size: 26px;
+  }
+
+  /* Advisor centers a single reading column. */
+  #screen-advisor {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  /* Tab bar stays a floating centered pill, sized to the mobile feel. */
+  #tabbar {
+    max-width: 420px;
+  }
+}
+
+/* Extra breathing room on very wide desktops. */
+@media (min-width: 1360px) {
+  #build-step-config {
+    column-gap: 44px;
+  }
+}
+
+/* ============================================================
+   LIVING INSTRUMENTS (Wave B3, js/motion.js companions)
+   ============================================================ */
+
+/* Stat bars: spring overshoot on width changes plus a one-shot
+   specular sweep (.sheen is added by VGMotion.sheenOn on change). */
+.stat-fill {
+  transition: width 460ms cubic-bezier(0.34, 1.45, 0.5, 1);
+}
+
+.stat-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(105deg,
+    transparent 20%,
+    rgba(255, 250, 235, 0.75) 50%,
+    transparent 80%);
+  transform: translateX(-130%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.stat-fill.sheen::after {
+  animation: vg-sheen 620ms ease-out 1;
+}
+
+@keyframes vg-sheen {
+  0%   { transform: translateX(-130%); opacity: 0; }
+  25%  { opacity: 0.9; }
+  100% { transform: translateX(130%); opacity: 0; }
+}
+
+/* Sliders: the thumb blooms a soft gold halo while dragging. */
+input[type="range"]:active::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 7px rgba(201, 168, 76, 0.16),
+    0 0 22px rgba(201, 168, 76, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+input[type="range"]:active::-moz-range-thumb {
+  box-shadow:
+    0 0 0 7px rgba(201, 168, 76, 0.16),
+    0 0 22px rgba(201, 168, 76, 0.55),
+    0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* Entrance choreography: widgets cascade in with a 40ms stagger the
+   first time each screen shows (VGMotion.enterScreen sets --si). */
+.vg-in {
+  animation: vg-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--si, 0) * 40ms);
+}
+
+@keyframes vg-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Ghost numerals: oversized editorial step numbers behind section
+   heads, magazine style. Hosts get data-ghost="01" etc. */
+[data-ghost] {
+  position: relative;
+}
+
+[data-ghost]::before {
+  content: attr(data-ghost);
+  position: absolute;
+  top: -0.28em;
+  right: 0.02em;
+  z-index: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: clamp(6rem, 16vw, 11rem);
+  line-height: 1;
+  color: rgba(232, 213, 160, 0.05);
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* X-RAY badge: viewer.js appends button.xray-btn inside #viewer-mount.
+   A quiet glass pill until armed, then it glows champagne. */
+.xray-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 3;
+  padding: 8px 14px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 30px;
+  background: rgba(12, 20, 26, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: rgba(232, 213, 160, 0.8);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease,
+    background 150ms ease, box-shadow 150ms ease;
+}
+
+.xray-btn:hover {
+  border-color: var(--gold);
+  color: var(--champagne);
+}
+
+.xray-btn.on {
+  background: rgba(201, 168, 76, 0.18);
+  border-color: var(--champagne);
+  color: var(--champagne);
+  box-shadow: 0 0 18px rgba(201, 168, 76, 0.35);
+}
+
+/* ============================================================
+   ENGINEERING THEATER (Wave C, js/theater.js)
+   ============================================================ */
+.eng-diagram {
+  padding: 2px 0 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.eng-diagram svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Spec card glow-up: a slow conic shimmer travels the card's outer
+   ring. Falls back to the existing static border when @property is
+   unsupported (the ::after simply never animates its angle). */
+@property --vg-sc-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+#speccard::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: 18px;
+  padding: 1px;
+  background: conic-gradient(from var(--vg-sc-angle, 0deg),
+    rgba(232, 213, 160, 0) 0%,
+    rgba(232, 213, 160, 0.85) 10%,
+    rgba(232, 213, 160, 0) 22%,
+    rgba(232, 213, 160, 0) 52%,
+    rgba(201, 168, 76, 0.5) 64%,
+    rgba(232, 213, 160, 0) 78%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: vg-sc-spin 7s linear infinite;
+}
+
+@keyframes vg-sc-spin {
+  to { --vg-sc-angle: 360deg; }
+}
+
+/* Living gold: the animated liquid-gold loop behind the card head.
+   Screen blend over the oxblood base; feathered out before the
+   medallions so the data zone stays print quality. */
+#sc-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 46%;
+  object-fit: cover;
+  object-position: center 24%;
+  border-radius: 18px 18px 0 0;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 50%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 50%, transparent 100%);
+}
+
+/* Card content rides above the video layer. The close button keeps its
+   own absolute placement and floats above everything, shimmer included. */
+#speccard > :not(#sc-video):not(#btn-close-spec) {
+  position: relative;
+  z-index: 1;
+}
+
+#btn-close-spec {
+  z-index: 3;
+}
+
+/* ============================================================
+   V9 ELEVATION: marquee, seam wipe, parallax, lab, stage cinema
+   ============================================================ */
+
+/* --- VALENCE marquee. Italiana hairline caps, gradient-metal letters,
+       staggered rise (motion.js splits into .mq-letter spans), then a
+       single diagonal gleam. --- */
+.marquee {
+  position: relative;
+  overflow: hidden;
+  font-family: 'Italiana', var(--font-display);
+  font-style: normal;
+  font-weight: 400;
+  font-size: clamp(54px, 11vw, 112px);
+  line-height: 1;
+  letter-spacing: 0.12em;
+  margin-right: -0.12em;
+}
+
+.mq-letter {
+  display: inline-block;
+  background: linear-gradient(180deg,
+    #FAF4F0 0%, var(--champagne) 36%, var(--gold) 70%, #7A5F23 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: mq-rise 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--li, 0) * 55ms);
+}
+
+@keyframes mq-rise {
+  from { opacity: 0; transform: translateY(0.32em); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.marquee::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg,
+    transparent 32%, rgba(255, 250, 235, 0.45) 50%, transparent 68%);
+  transform: translateX(-130%);
+  animation: mq-gleam 1.5s ease-out 950ms 1 both;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+@keyframes mq-gleam {
+  to { transform: translateX(130%); }
+}
+
+/* --- Seam wipe between screens: one champagne hairline with soft gold
+       bloom crosses the viewport in half a second. --- */
+#seam-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#seam-wipe.run {
+  background: linear-gradient(90deg,
+    transparent 42%,
+    rgba(201, 168, 76, 0.05) 47%,
+    rgba(232, 213, 160, 0.85) 50%,
+    rgba(201, 168, 76, 0.05) 53%,
+    transparent 58%);
+  animation: seam-run 520ms cubic-bezier(0.55, 0, 0.2, 1) 1 forwards;
+}
+
+@keyframes seam-run {
+  0%   { opacity: 1; transform: translateX(-72%); }
+  100% { opacity: 0; transform: translateX(72%); }
+}
+
+/* --- Pointer parallax: the fixed atmosphere layers drift a few px
+       against the pointer (vars set by motion.js on the root). --- */
+#screen-garage::before,
+#screen-build::before {
+  transform: translate3d(var(--plx-x, 0px), var(--plx-y, 0px), 0) scale(1.04);
+  will-change: transform;
+}
+
+/* --- The Laboratory (wind tunnel) --- */
+#screen-lab::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Blueprint air: faint teal drafting grid under a deep vignette. */
+  background:
+    radial-gradient(ellipse 130% 100% at 50% 26%,
+      rgba(4, 8, 11, 0.12) 0%, rgba(3, 6, 8, 0.82) 100%),
+    repeating-linear-gradient(0deg,
+      rgba(44, 150, 170, 0.055) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg,
+      rgba(44, 150, 170, 0.055) 0 1px, transparent 1px 44px),
+    #04080B;
+}
+
+#lab-stage {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  min-height: 280px;
+  margin-bottom: 16px;
+}
+
+#lab-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #04090B;
+}
+
+#lab-plate {
+  position: absolute;
+  left: 14px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 7px 13px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  background: rgba(12, 20, 26, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232, 213, 160, 0.78);
+}
+
+#lab-picker {
+  padding: 14px 18px;
+  margin-bottom: 14px;
+}
+
+#lab-readouts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+#lab-controls {
+  padding: 18px;
+}
+
+#lab-caption {
+  margin-top: 12px;
+  text-align: center;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.4;
+  color: rgba(232, 200, 180, 0.62);
+}
+
+/* --- Stage cinema: gold corner registration ticks on both stages. --- */
+#car-stage,
+#lab-stage {
+  position: relative;
+}
+
+#car-stage::after,
+#lab-stage::after {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    linear-gradient(var(--gold), var(--gold)) left top / 15px 1px,
+    linear-gradient(var(--gold), var(--gold)) left top / 1px 15px,
+    linear-gradient(var(--gold), var(--gold)) right top / 15px 1px,
+    linear-gradient(var(--gold), var(--gold)) right top / 1px 15px,
+    linear-gradient(var(--gold), var(--gold)) left bottom / 15px 1px,
+    linear-gradient(var(--gold), var(--gold)) left bottom / 1px 15px,
+    linear-gradient(var(--gold), var(--gold)) right bottom / 15px 1px,
+    linear-gradient(var(--gold), var(--gold)) right bottom / 1px 15px;
+  background-repeat: no-repeat;
+}
+
+/* --- X-ray radiograph scan: an ice line sweeps the stage on toggle. --- */
+#viewer-mount.scanning::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    transparent 0%,
+    rgba(159, 232, 240, 0.14) 46%,
+    rgba(159, 232, 240, 0.5) 50%,
+    rgba(159, 232, 240, 0.14) 54%,
+    transparent 100%) no-repeat;
+  background-size: 100% 36%;
+  animation: xray-scan 700ms ease-in-out 1 forwards;
+}
+
+@keyframes xray-scan {
+  from { background-position-y: -45%; }
+  to   { background-position-y: 145%; }
+}
+
+/* --- Assembling state: the stage announces the build instead of
+       sitting empty while a 15 MB machine parses. --- */
+.stage-assembling {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  color: rgba(232, 213, 160, 0.85);
+  animation: sa-pulse 1.6s ease-in-out infinite;
+}
+
+.sa-line {
+  display: block;
+  width: 34px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201, 168, 76, 0.8));
+}
+
+.sa-line:last-child {
+  transform: scaleX(-1);
+}
+
+@keyframes sa-pulse {
+  0%, 100% { opacity: 0.5; }
+  50%      { opacity: 1; }
+}
+
+/* --- The Proving Ground (v10, the base) --- */
+#screen-duel::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  /* Night strip: near-black with twin gold horizon lines and haze. */
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 18%,
+      rgba(23, 84, 95, 0.2) 0%, transparent 60%),
+    linear-gradient(180deg, #04080B 0%, #020507 100%);
+}
+
+#duel-stage {
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  min-height: 300px;
+  margin-bottom: 16px;
+}
+
+#duel-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: #04080B;
+}
+
+#duel-results {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 22px;
+  text-align: center;
+  background: rgba(3, 6, 8, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: screen-in 260ms ease both;
+}
+
+.dr-verdict {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 26px;
+  background: linear-gradient(180deg, var(--porcelain), var(--champagne) 55%, var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.dr-gap {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 14px;
+  color: rgba(232, 200, 180, 0.7);
+  margin-bottom: 8px;
+}
+
+.dr-row {
+  width: 100%;
+  max-width: 380px;
+  padding: 10px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  background: rgba(16, 24, 30, 0.5);
+}
+
+.dr-row.won {
+  border-color: rgba(201, 168, 76, 0.6);
+  box-shadow: 0 0 18px rgba(201, 168, 76, 0.15);
+}
+
+.dr-name {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--champagne);
+  margin-bottom: 5px;
+}
+
+.dr-cells {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: rgba(159, 232, 240, 0.75);
+}
+
+.dr-cells b {
+  font-size: 13px;
+  color: var(--porcelain);
+  font-weight: 600;
+}
+
+#duel-results .btn-secondary {
+  margin-top: 8px;
+}
+
+#duel-picker {
+  display: grid;
+  grid-template-columns: 1fr auto 1.4fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px 18px;
+  margin-bottom: 14px;
+}
+
+.duel-vs {
+  align-self: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  color: rgba(201, 168, 76, 0.7);
+}
+
+#duel-you-plate {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--porcelain);
+  margin-top: 6px;
+}
+
+#lab-picker .chip-row,
+#duel-picker .chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+  max-height: 118px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Abort state: the run button turns to a quiet warning while a race is live. */
+#btn-duel.abort {
+  background: transparent;
+  border: 1px solid rgba(192, 48, 48, 0.55);
+  color: #E0A0A0;
+  box-shadow: none;
+}
+
+/* Spec sheet: three columns, differences glow. */
+#duel-specs {
+  padding: 14px 18px 12px;
+  margin-bottom: 14px;
+}
+
+.ds-head {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  align-items: baseline;
+  padding-bottom: 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--hairline);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--champagne);
+}
+
+.ds-head span:first-child { text-align: left; }
+.ds-head span:last-child { text-align: right; }
+
+.ds-vs {
+  font-family: var(--font-accent);
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: rgba(232, 200, 180, 0.55);
+}
+
+.ds-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  padding: 6px 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: rgba(250, 244, 240, 0.82);
+}
+
+.ds-row + .ds-row {
+  border-top: 1px solid rgba(201, 168, 76, 0.07);
+}
+
+.ds-a { text-align: left; }
+.ds-b { text-align: right; }
+
+.ds-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(159, 232, 240, 0.55);
+  align-self: center;
+}
+
+.ds-row.diff .ds-a,
+.ds-row.diff .ds-b {
+  color: var(--champagne);
+  font-weight: 600;
+}
+
+.ds-row.diff .ds-label {
+  color: var(--gold);
+}
+
+.ds-foot {
+  margin-top: 8px;
+  text-align: center;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(232, 200, 180, 0.6);
+}
+
+#lab-picker .chip-row .chip,
+#duel-picker .chip-row .chip {
+  padding: 7px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 20px;
+  background: transparent;
+  color: rgba(232, 213, 160, 0.75);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+#lab-picker .chip-row .chip:hover,
+#duel-picker .chip-row .chip:hover {
+  border-color: var(--gold);
+  color: var(--champagne);
+}
+
+#lab-picker .chip-row .chip.active,
+#duel-picker .chip-row .chip.active {
+  background: rgba(201, 168, 76, 0.16);
+  border-color: var(--gold);
+  color: var(--champagne);
+}
+
+@media (max-width: 560px) {
+  #duel-picker {
+    grid-template-columns: 1fr;
+  }
+  .duel-vs {
+    justify-self: center;
+  }
+}
+
+/* ============================================================
+   THE CLINIC (v12, js/clinic.js)
+   ============================================================ */
+#screen-clinic::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 100% 70% at 50% 0%,
+      rgba(23, 84, 95, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #04080B 0%, #030608 100%);
+}
+
+.clinic-panel {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.clinic-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  color: var(--champagne);
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 19px;
+  text-align: left;
+}
+
+.clinic-head .clinic-sub {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 13px;
+  color: rgba(232, 200, 180, 0.55);
+}
+
+.clinic-head[aria-expanded="true"] {
+  border-bottom: 1px solid var(--hairline);
+}
+
+.clinic-body {
+  padding: 16px 18px 18px;
+}
+
+.cl-copy {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: rgba(250, 244, 240, 0.72);
+  margin-bottom: 14px;
+}
+
+.cl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cl-upload {
+  position: relative;
+  overflow: hidden;
+}
+
+.cl-demos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border: 1px dashed rgba(201, 168, 76, 0.28);
+  border-radius: 12px;
+}
+
+.cl-demos-label {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 13px;
+  color: rgba(232, 200, 180, 0.65);
+  margin-right: 4px;
+}
+
+.cl-demos .chip {
+  padding: 6px 11px;
+  border: 1px solid var(--hairline);
+  border-radius: 18px;
+  background: transparent;
+  color: rgba(232, 213, 160, 0.78);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.cl-demos .chip:hover {
+  border-color: var(--gold);
+  color: var(--champagne);
+}
+
+.cl-spectrum,
+.cl-fea {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  background: #04080B;
+}
+
+.cl-fea {
+  height: 150px;
+}
+
+.cl-verdict {
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: rgba(16, 24, 30, 0.5);
+}
+
+.cl-verdict.top {
+  border-color: rgba(201, 168, 76, 0.55);
+  box-shadow: 0 0 16px rgba(201, 168, 76, 0.12);
+}
+
+.cl-vhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.cl-vname {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--porcelain);
+}
+
+.cl-vconf {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.cl-vbar {
+  height: 4px;
+  border-radius: 3px;
+  background: rgba(201, 168, 76, 0.12);
+  margin: 7px 0;
+  overflow: hidden;
+}
+
+.cl-vbar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold), var(--champagne));
+}
+
+.cl-vpart {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: rgba(159, 232, 240, 0.75);
+  margin-bottom: 4px;
+}
+
+.cl-vsay {
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(232, 200, 180, 0.85);
+}
+
+.cl-note {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: rgba(159, 232, 240, 0.55);
+  margin-top: 8px;
+}
+
+.cl-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cl-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(232, 213, 160, 0.7);
+}
+
+.cl-form label span {
+  color: var(--champagne);
+  letter-spacing: 0.02em;
+}
+
+.cl-form select {
+  padding: 10px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  background: rgba(12, 20, 26, 0.6);
+  color: var(--porcelain);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.cl-warns {
+  margin-top: 10px;
+}
+
+.cl-warn {
+  padding: 9px 12px;
+  border: 1px solid rgba(192, 48, 48, 0.5);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: #E8B0B0;
+  background: rgba(80, 12, 12, 0.25);
+}
+
+.cl-big {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--porcelain);
+  margin: 8px 0 6px;
+}
+
+.cl-big span {
+  font-size: 15px;
+  color: rgba(232, 200, 180, 0.7);
+}
+
+.cl-lp-bar {
+  height: 8px;
+  border-radius: 5px;
+  background: rgba(201, 168, 76, 0.12);
+  overflow: hidden;
+  margin: 8px 0;
+}
+
+.cl-lp-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal-glow), var(--gold));
+  border-radius: 5px;
+}
+
+.cl-lp-bar span.over {
+  background: linear-gradient(90deg, var(--gold), var(--ruby));
+}
+
+/* --- v13: AI engine card, about expanders, streaming diagnosis --- */
+.cl-key-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 11px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: 30px;
+  background: rgba(12, 20, 26, 0.6);
+  color: var(--porcelain);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.cl-key-input:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.cl-ai-status {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  color: rgba(232, 213, 160, 0.75);
+}
+
+.cl-ai-status.gemini {
+  border-color: rgba(120, 220, 140, 0.45);
+  color: #A8E8B8;
+}
+
+.cl-about {
+  margin-bottom: 14px;
+  border: 1px solid rgba(201, 168, 76, 0.18);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.cl-about summary {
+  padding: 10px 14px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  list-style: none;
+}
+
+.cl-about summary::before {
+  content: '\2726  ';
+  color: var(--champagne);
+}
+
+.cl-about[open] summary {
+  border-bottom: 1px solid rgba(201, 168, 76, 0.14);
+}
+
+.cl-about p {
+  padding: 12px 16px 14px;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: rgba(250, 244, 240, 0.8);
+}
+
+.cl-photo-preview {
+  display: block;
+  max-width: 260px;
+  max-height: 180px;
+  border-radius: 12px;
+  border: 1px solid var(--hairline);
+  margin: 0 0 12px;
+}
+
+.cl-ai-panel {
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 100% 100% at 0% 0%,
+      rgba(23, 84, 95, 0.25) 0%, transparent 60%),
+    rgba(10, 16, 20, 0.65);
+  padding: 14px 16px;
+  margin-top: 12px;
+}
+
+.cl-ai-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cl-ai-title {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 700;
+  font-size: 15px;
+  background: linear-gradient(90deg, var(--champagne), var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.cl-ai-engine {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(159, 232, 240, 0.65);
+}
+
+.cl-ai-text {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.65;
+  color: rgba(250, 244, 240, 0.88);
+  white-space: pre-wrap;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.cl-ai-text.thinking::after {
+  content: '\258C';
+  color: var(--gold);
+  animation: cl-caret 0.9s steps(2) infinite;
+}
+
+@keyframes cl-caret {
+  50% { opacity: 0; }
+}
+
+.cl-ask {
+  margin-top: 9px;
+  padding: 7px 13px;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  border-radius: 18px;
+  background: rgba(201, 168, 76, 0.08);
+  color: var(--champagne);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.cl-ask:hover {
+  background: rgba(201, 168, 76, 0.2);
+  border-color: var(--gold);
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  #duel-results {
+    animation: none !important;
+  }
+  .mq-letter,
+  .marquee::after,
+  #seam-wipe.run,
+  #viewer-mount.scanning::before,
+  .stage-assembling {
+    animation: none !important;
+  }
+  #seam-wipe.run {
+    opacity: 0 !important;
+  }
+  #screen-garage::before,
+  #screen-build::before {
+    transform: none !important;
+  }
+  .stat-fill::after,
+  .stat-fill.sheen::after {
+    animation: none !important;
+    opacity: 0 !important;
+  }
+  .vg-in {
+    animation: none !important;
+  }
+  #speccard::after {
+    animation: none !important;
+  }
+  #sc-video {
+    display: none;
+  }
+  #advisor-orb,
+  .orb-core,
+  .orb-glow,
+  #advisor-status,
+  #viewer-mount.loading::after {
+    animation: none !important;
+  }
+  .screen.active,
+  #speccard-overlay {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+  }
+}

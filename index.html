@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Valence Garage</title>
+  <meta name="theme-color" content="#04090B">
+  <meta name="description" content="A dark luxury hypercar configurator. Where physics meets desire.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Valence">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=22">
+</head>
+<body>
+  <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
+       #fog-canvas (teal value-noise fractal, luminous upper-left mass, lower
+       right pocket, baked vignette). Fractal grain overlay sits on top. -->
+  <canvas id="fog-canvas" aria-hidden="true"></canvas>
+  <!-- Per-screen fixed backgrounds (v6) are painted as ::before pseudo-layers
+       on #screen-garage (space image + vignette) and #screen-advisor (pure
+       black + faint gold floor glow) in style.css. Because a display:none
+       screen renders no pseudo-element, the background is tied directly to the
+       active screen with zero JS and no fragile :has() invalidation. The fog
+       canvas above shows only on Build, where no screen ::before covers it. -->
+  <div id="noise-layer" aria-hidden="true"></div>
+
+  <div id="app">
+
+    <!-- ============================ GARAGE ============================ -->
+    <section id="screen-garage" class="screen active" aria-label="Garage">
+      <header class="masthead">
+        <div class="eyebrow">The Private Collection</div>
+        <!-- v9 marquee: motion.js splits the wordmark into per-letter spans
+             for the staggered rise; CSS paints the gradient + shine sweep. -->
+        <h1 id="marquee" class="display-title marquee">VALENCE</h1>
+        <p class="tagline">Where physics meets desire.</p>
+        <div class="hairline"></div>
+      </header>
+
+      <div id="dashboard">
+
+        <!-- Hero car widget. heroscene.js paints the deep-blue night arch-portal
+             composition onto a canvas inside #hero-stage, UNDER the car image /
+             fallback silhouette. The stage is ~4:3, rounded, overflow hidden. -->
+        <section id="dash-hero" class="glass-sheet" aria-label="Current build">
+          <div id="hero-stage">
+            <!-- heroscene.js inserts canvas.hero-scene-canvas here as first child -->
+            <img id="hero-car-img" alt="" aria-hidden="true" hidden>
+            <div id="hero-fallback" aria-hidden="true"><!-- app.js injects CarArt svg --></div>
+          </div>
+          <div id="hero-meta">
+            <h3 id="hero-name" class="display-title">Your Garage Awaits</h3>
+            <div id="hero-sub" class="tagline">Begin your first machine.</div>
+            <div id="hero-chips"><!-- app.js injects three glass chips --></div>
+            <button id="btn-hero-cta" class="btn-primary" type="button">Start a Build</button>
+          </div>
+        </section>
+
+        <!-- Performance snapshot bars -->
+        <section id="dash-stats" class="glass-sheet" aria-label="Performance">
+          <div class="panel-eyebrow">Performance</div>
+          <div id="dash-bars"><!-- app.js injects five .stat-row nodes --></div>
+        </section>
+
+        <!-- Saved builds gallery (mobile order: hero, stats, builds, advisor;
+             desktop placement handled by grid-template-areas) -->
+        <section id="dash-builds" class="glass-sheet" aria-label="Saved builds">
+          <div class="dash-builds-head">
+            <div class="panel-eyebrow">Saved Builds</div>
+            <button id="btn-new-build" class="btn-secondary" type="button" hidden>New Build</button>
+          </div>
+
+          <div id="garage-list" aria-live="polite"><!-- app.js injects saved builds --></div>
+
+          <div id="garage-empty">
+            <div class="ornament" aria-hidden="true">&#10022;</div>
+            <p class="empty-copy">No machines yet. Every legend begins with a blank slate and an appetite.</p>
+            <button id="btn-start-build" class="btn-primary" type="button">Start a Build</button>
+          </div>
+        </section>
+
+        <!-- Advisor quick-entry -->
+        <section id="dash-advisor" class="glass-sheet" aria-label="Advisor">
+          <div id="dash-orb" aria-hidden="true">
+            <span class="orb-glow"></span>
+            <span class="orb-core"></span>
+          </div>
+          <div id="dash-advisor-body">
+            <div class="eyebrow">The Advisor is in</div>
+            <span id="dash-advisor-hint">Ask how to make it faster.</span>
+          </div>
+          <button id="btn-dash-advisor" class="btn-secondary" type="button">Ask</button>
+        </section>
+
+      </div>
+    </section>
+
+    <!-- ============================ BUILD ============================ -->
+    <section id="screen-build" class="screen" aria-label="Build">
+
+      <!-- Step 1: car picker -->
+      <div id="build-step-picker">
+        <header class="masthead compact" data-ghost="01">
+          <div class="eyebrow">Choose Your Machine</div>
+          <h2 class="display-title">The Stable</h2>
+          <p class="tagline">Sixteen legends, one garage.</p>
+          <div class="hairline"></div>
+        </header>
+
+        <div id="car-grid"><!-- app.js injects button.car-card nodes --></div>
+      </div>
+
+      <!-- Step 2: configurator -->
+      <div id="build-step-config" hidden>
+        <div class="config-head">
+          <button id="btn-back-arch" class="btn-icon" type="button" aria-label="Back to car picker">
+            <span class="gbadge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M15 5l-7 7 7 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <input id="build-name" type="text" value="Grand Tourer" spellcheck="false" aria-label="Build name">
+          <div id="build-arch-label" class="eyebrow">Grand Tourer</div>
+        </div>
+
+        <div id="config-left">
+        <div id="car-stage">
+          <div id="viewer-mount" aria-label="3D car viewer" role="img"><!-- viewer.js fills this canvas --></div>
+          <div class="stage-hairline"></div>
+        </div>
+
+        <div id="readouts">
+          <div class="ro" id="ro-ptw">
+            <div class="ro-top">
+              <span class="ro-ico gbadge sm" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M13 3L5 13h5l-1 8 8-11h-5l1-7z" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <div class="ro-value" id="ro-ptw-v">0</div>
+            </div>
+            <div class="ro-label" id="ro-ptw-l">HP / Tonne</div>
+          </div>
+          <div class="ro" id="ro-060">
+            <div class="ro-top">
+              <span class="ro-ico gbadge sm" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 12h13" stroke-linecap="round"/>
+                  <path d="M12 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+              <div class="ro-value" id="ro-060-v">0.0</div>
+            </div>
+            <div class="ro-label" id="ro-060-l">0 to 60 mph &middot; s</div>
+          </div>
+          <div class="ro" id="ro-top">
+            <div class="ro-top">
+              <span class="ro-ico gbadge sm" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M4 18a8 8 0 0 1 16 0" stroke-linecap="round"/>
+                  <path d="M12 18l4.5-5" stroke-linecap="round"/>
+                </svg>
+              </span>
+              <div class="ro-value" id="ro-top-v">0</div>
+            </div>
+            <div class="ro-label" id="ro-top-l">Top Speed &middot; km/h</div>
+          </div>
+          <div class="ro" id="ro-brake">
+            <div class="ro-top">
+              <span class="ro-ico gbadge sm" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <circle cx="12" cy="12" r="8.5"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+              <div class="ro-value" id="ro-brake-v">0</div>
+            </div>
+            <div class="ro-label" id="ro-brake-l">Brake from 100 &middot; m</div>
+          </div>
+        </div>
+        </div><!-- /#config-left -->
+
+        <div id="config-right" data-ghost="02">
+
+        <div id="unit-toggle" role="group" aria-label="Units">
+          <button type="button" data-unit="metric" class="active" aria-pressed="true">Metric</button>
+          <button type="button" data-unit="imperial" aria-pressed="false">Imperial</button>
+        </div>
+
+        <div id="controls">
+          <div class="control-row">
+            <div class="control-head">
+              <span class="control-label">Power</span>
+              <span class="control-val" id="val-power">650 hp</span>
+            </div>
+            <input id="ctl-power" type="range" min="300" max="2000" step="10" value="650" aria-label="Power in horsepower">
+          </div>
+
+          <div class="control-row">
+            <div class="control-head">
+              <span class="control-label">Weight</span>
+              <span class="control-val" id="val-weight">1750 kg</span>
+            </div>
+            <input id="ctl-weight" type="range" min="900" max="2200" step="10" value="1750" aria-label="Weight in kilograms">
+          </div>
+
+          <div class="control-row">
+            <div class="control-head"><span class="control-label">Drivetrain</span></div>
+            <div id="ctl-drivetrain" class="segmented" role="group" aria-label="Drivetrain">
+              <button type="button" data-dt="RWD">RWD</button>
+              <button type="button" data-dt="AWD" class="active">AWD</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-head"><span class="control-label">Aero Wing</span></div>
+            <div id="ctl-wing" class="segmented five" role="group" aria-label="Aero wing level">
+              <button type="button" data-wing="0" class="active">None</button>
+              <button type="button" data-wing="1">Low</button>
+              <button type="button" data-wing="2">Mid</button>
+              <button type="button" data-wing="3">High</button>
+              <button type="button" data-wing="4">Max</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-head"><span class="control-label">Tires</span></div>
+            <div id="ctl-tire" class="segmented four" role="group" aria-label="Tire compound">
+              <button type="button" data-tire="0">Touring</button>
+              <button type="button" data-tire="1" class="active">Sport</button>
+              <button type="button" data-tire="2">Cup</button>
+              <button type="button" data-tire="3">Slick</button>
+            </div>
+          </div>
+
+          <div class="control-row">
+            <div class="control-head"><span class="control-label">Accent</span></div>
+            <div id="ctl-accent" class="swatch-row" role="group" aria-label="Accent color">
+              <button type="button" class="swatch" data-accent="#C9A84C" style="--sw:#C9A84C" aria-label="Gold"></button>
+              <button type="button" class="swatch" data-accent="#E8D5A0" style="--sw:#E8D5A0" aria-label="Champagne"></button>
+              <button type="button" class="swatch" data-accent="#A02020" style="--sw:#A02020" aria-label="Crimson"></button>
+              <button type="button" class="swatch" data-accent="#E8C8B4" style="--sw:#E8C8B4" aria-label="Cognac"></button>
+              <button type="button" class="swatch" data-accent="#FAF4F0" style="--sw:#FAF4F0" aria-label="Porcelain"></button>
+              <button type="button" class="swatch" data-accent="#6E1616" style="--sw:#6E1616" aria-label="Oxblood"></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="chart-panel" class="panel">
+          <div class="panel-eyebrow">Performance Envelope</div>
+          <div id="stat-bars"><!-- app.js injects five .stat-row nodes --></div>
+          <div id="chart-caption">Five strengths of this build. Fuller is stronger.</div>
+        </div>
+
+        <div id="eng-panel" class="panel">
+          <button id="eng-toggle" type="button" aria-expanded="false" aria-controls="eng-body">
+            <span>Engineering</span>
+            <span class="chev gbadge sm" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+          </button>
+          <div id="eng-body">
+            <div class="eng-inner">
+              <div class="eng-block">
+                <div class="eng-title">Drag</div>
+                <div class="eng-formula">F_drag = 1/2 x rho x CdA x v^2</div>
+                <div class="eng-sub" id="eng-drag-sub">0</div>
+              </div>
+              <div class="eng-block">
+                <div class="eng-title">Downforce</div>
+                <div class="eng-formula">F_down = 1/2 x rho x ClA x v^2</div>
+                <div class="eng-sub" id="eng-down-sub">0</div>
+              </div>
+              <div class="eng-block">
+                <div class="eng-title">Traction Limit</div>
+                <div class="eng-formula">a_max = mu x (m x g + F_down) / m</div>
+                <div class="eng-sub" id="eng-trac-sub">0</div>
+              </div>
+              <div class="eng-block">
+                <div class="eng-title">The Tradeoff</div>
+                <div class="eng-formula">more wing raises CdA and ClA together</div>
+                <div class="eng-sub" id="eng-trade-sub">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="btn-save" class="btn-primary" type="button">Save Build</button>
+          <button id="btn-share" class="btn-secondary" type="button">Spec Card</button>
+        </div>
+        </div><!-- /#config-right -->
+      </div>
+    </section>
+
+    <!-- ============================ ADVISOR ============================ -->
+    <section id="screen-advisor" class="screen state-hero" aria-label="Advisor">
+      <header id="advisor-hero" class="advisor-head">
+        <!-- Voice/TTS toggle (advisor.js speaks replies aloud). Gold voice badge. -->
+        <button id="btn-voice" class="voice gbadge-btn" type="button" aria-pressed="false" aria-label="Toggle voice">
+          <span class="gbadge sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 9.5v5h3.5l4.5 3.5v-12L7.5 9.5H4z" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M16 9a4 4 0 0 1 0 6" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <h2 id="advisor-title">What can I do for you today?</h2>
+
+        <!-- Huge tappable orb. advisor.js toggles speech recognition on tap. -->
+        <div id="advisor-orb" role="button" tabindex="0" aria-label="Speak">
+          <span class="orb-glow" aria-hidden="true"></span>
+          <span class="orb-core" aria-hidden="true"></span>
+          <canvas id="orb-canvas" aria-hidden="true"></canvas>
+        </div>
+
+        <!-- Live transcript / calm notice line (Cormorant italic champagne). -->
+        <div id="voice-live" aria-live="polite" hidden></div>
+
+        <div id="advisor-status" hidden>Warming up the advisor</div>
+
+        <!-- Keyboard affordance, bottom-center in hero. Reveals the input row. -->
+        <button id="btn-keyboard" type="button" aria-label="Use keyboard">
+          <span class="gbadge sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="7" width="18" height="11" rx="2"/>
+              <path d="M7 11h0M11 11h0M15 11h0M7 14.5h10" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="btn-keyboard-label">Use keyboard</span>
+        </button>
+      </header>
+
+      <div id="advisor-chips">
+        <div class="chip-label chips-heading">Quick advice</div>
+        <div class="chip-group">
+          <div class="chip-label">Budget</div>
+          <div class="chip-row" role="group" aria-label="Budget">
+            <button type="button" class="chip" data-budget="low">Low</button>
+            <button type="button" class="chip active" data-budget="med">Med</button>
+            <button type="button" class="chip" data-budget="high">High</button>
+          </div>
+        </div>
+        <div class="chip-group">
+          <div class="chip-label">Focus</div>
+          <div class="chip-row" role="group" aria-label="Focus">
+            <button type="button" class="chip" data-focus="looks">Looks</button>
+            <button type="button" class="chip" data-focus="speed">Speed</button>
+            <button type="button" class="chip" data-focus="track">Track</button>
+            <button type="button" class="chip active" data-focus="balanced">Balanced</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="advisor-thread" aria-live="polite">
+        <div class="msg advisor">
+          I read your build, run the numbers through rules and physics, and tell you the truth. No language model behind me, so I cannot flatter you, only advise you.
+        </div>
+      </div>
+
+      <button id="btn-advise" class="btn-primary full" type="button">Consult the Advisor</button>
+
+      <div id="advisor-input-row">
+        <input id="advisor-input" type="text" placeholder="What can I do for you today?" spellcheck="false" autocomplete="off" aria-label="Message the advisor">
+        <button id="btn-send" type="button" aria-label="Send message">
+          <span class="gbadge" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M4 12l16-7-7 16-2.5-6.5L4 12z" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================ LAB ============================ -->
+    <!-- v9: the wind tunnel. js/windlab.js owns the canvas: airflow
+         streamlines deflecting over the current machine's silhouette,
+         live drag / downforce / power readouts at a tunable airspeed. -->
+    <section id="screen-lab" class="screen" aria-label="Wind lab">
+      <header class="masthead compact" data-ghost="03">
+        <div class="eyebrow">The Laboratory</div>
+        <h2 class="display-title">Wind Tunnel</h2>
+        <p class="tagline">Air is the only honest critic.</p>
+        <div class="hairline"></div>
+      </header>
+
+      <div id="lab-stage" class="glass-sheet">
+        <canvas id="lab-canvas" aria-label="Wind tunnel visualization" role="img"></canvas>
+        <div id="lab-plate"><!-- windlab.js writes the car name here --></div>
+      </div>
+
+      <!-- v11.1: any machine can enter the tunnel, not just the current build. -->
+      <div id="lab-picker" class="panel">
+        <div class="panel-eyebrow">In the Tunnel</div>
+        <div id="lab-picker-chips" class="chip-row"><!-- windlab.js fills --></div>
+      </div>
+
+      <div id="lab-readouts">
+        <div class="ro">
+          <div class="ro-top"><div class="ro-value" id="lab-drag-v">0</div></div>
+          <div class="ro-label">Drag &middot; N</div>
+        </div>
+        <div class="ro">
+          <div class="ro-top"><div class="ro-value" id="lab-down-v">0</div></div>
+          <div class="ro-label">Downforce &middot; N</div>
+        </div>
+        <div class="ro">
+          <div class="ro-top"><div class="ro-value" id="lab-power-v">0</div></div>
+          <div class="ro-label">Drag Power &middot; kW</div>
+        </div>
+      </div>
+
+      <div id="lab-controls" class="panel">
+        <div class="control-row">
+          <div class="control-head">
+            <span class="control-label">Airspeed</span>
+            <span class="control-val" id="lab-speed-val">200 km/h</span>
+          </div>
+          <input id="lab-speed" type="range" min="50" max="400" step="5" value="200" aria-label="Airspeed in kilometers per hour">
+        </div>
+        <div id="lab-caption">Streamlines bend over the body. Wing level and tires come from your current build.</div>
+      </div>
+    </section>
+
+    <!-- ============================ DUEL ============================ -->
+    <!-- v10, the base of the pizza: race any build against any other
+         machine over the quarter mile with the app's real physics.
+         js/duel.js owns the canvas, the countdown, and the results. -->
+    <section id="screen-duel" class="screen" aria-label="Proving ground">
+      <header class="masthead compact" data-ghost="04">
+        <div class="eyebrow">The Proving Ground</div>
+        <h2 class="display-title">The Duel</h2>
+        <p class="tagline">Two machines. One truth.</p>
+        <div class="hairline"></div>
+      </header>
+
+      <div id="duel-stage" class="glass-sheet">
+        <canvas id="duel-canvas" aria-label="Quarter mile race" role="img"></canvas>
+        <div id="duel-results" hidden></div>
+      </div>
+
+      <!-- v11: BOTH corners are free picks (current build, saved builds,
+           factory stock), so custom vs factory twin, custom vs custom and
+           stock vs stock are all one tap. -->
+      <div id="duel-picker" class="panel">
+        <div class="duel-corner">
+          <div class="panel-eyebrow">Lane One</div>
+          <div id="duel-you-chips" class="chip-row"><!-- duel.js fills --></div>
+        </div>
+        <div class="duel-vs" aria-hidden="true">vs</div>
+        <div class="duel-corner">
+          <div class="panel-eyebrow">Lane Two</div>
+          <div id="duel-foe-chips" class="chip-row"><!-- duel.js fills --></div>
+        </div>
+      </div>
+
+      <!-- Side-by-side specification; differences glow gold. -->
+      <div id="duel-specs" class="panel" aria-label="Specification comparison"></div>
+
+      <button id="btn-duel" class="btn-primary full" type="button">Run the Quarter Mile</button>
+    </section>
+
+    <!-- ============================ CLINIC ============================ -->
+    <!-- v12: four instruments of practical mechanical engineering, each
+         with built-in synthetic test signals (js/clinic.js). -->
+    <section id="screen-clinic" class="screen" aria-label="Clinic">
+      <header class="masthead compact" data-ghost="05">
+        <div class="eyebrow">The Clinic</div>
+        <h2 class="display-title">Instruments</h2>
+        <p class="tagline">Listen. Measure. Know before you pay.</p>
+        <div class="hairline"></div>
+      </header>
+
+      <!-- AI Engine: the free brain behind the instruments. -->
+      <div class="panel clinic-panel" id="cl-ai-card">
+        <button class="clinic-head" id="cl-ai-head" type="button" aria-expanded="true">
+          <span>AI Engine</span>
+          <span class="clinic-sub">free Gemini key, stored only on this device</span>
+        </button>
+        <div class="clinic-body">
+          <p class="cl-copy">The instruments below carry this garage's full
+          diagnostic knowledge: fault trees, acoustic signatures, fluid
+          charts, fair-shop playbooks. Plug in a FREE Gemini key
+          (aistudio.google.com/apikey, any Google account, no card) and a
+          frontier AI reasons over that knowledge, reads your photos, and
+          writes your diagnosis live. Without a key everything still works:
+          the on-device Advisor model narrates, and photos use the local
+          color analyzer.</p>
+          <div class="cl-actions">
+            <input id="cl-ai-key" type="password" placeholder="Paste Gemini API key"
+                   autocomplete="off" spellcheck="false" class="cl-key-input">
+            <button id="cl-ai-save" class="btn-secondary" type="button">Save &amp; Test</button>
+          </div>
+          <div id="cl-ai-status" class="cl-ai-status"></div>
+          <div id="cl-ai-msg" class="cl-note"></div>
+        </div>
+      </div>
+
+      <!-- 1. Engine Whisperer -->
+      <div class="panel clinic-panel">
+        <button class="clinic-head" id="cl-ew-head" type="button" aria-expanded="true">
+          <span>Engine Whisperer</span>
+          <span class="clinic-sub">what is that noise</span>
+        </button>
+        <div class="clinic-body">
+          <p class="cl-copy">Your car is talking. Record the clunk, squeal,
+          tick, or hiss, or photograph the leak, and watch the AI reason
+          over real spectral evidence to tell you what is wrong, how urgent
+          it is, and exactly what to say at the counter so nobody
+          overcharges you.</p>
+          <details class="cl-about">
+            <summary>About this instrument</summary>
+            <p>Every fault has a voiceprint. A worn belt screams one narrow
+            note; a dying rod bearing thuds at half engine speed; a boost
+            leak hisses with no rhythm at all. This instrument runs your
+            recording through the same math a vibration lab uses: windowed
+            frequency analysis plus an envelope-rhythm scan, measuring the
+            pitch, purity, and beat of the noise. Those measurements are
+            matched against a built-in library of acoustic fault signatures
+            with full playbooks: causes, urgency, fair-shop pricing
+            behavior, free driveway checks, and the follow-up questions
+            that separate look-alike sounds. Then the AI engine composes
+            your diagnosis from that evidence, live, token by token. It is
+            a hypothesis, not a verdict, and it says so: but you will walk
+            into the shop knowing exactly what to ask for. Photos work the
+            same way: fluid-color charts and wear-pattern guides feed the
+            vision model, so a picture of the puddle under your car comes
+            back as a name, a severity, and a plan.</p>
+          </details>
+          <div class="cl-actions">
+            <button id="cl-ew-rec" class="btn-secondary" type="button">Record 4 s</button>
+            <label class="btn-secondary cl-upload">Upload audio
+              <input id="cl-ew-file" type="file" accept="audio/*" hidden>
+            </label>
+            <label class="btn-secondary cl-upload">Photo diagnosis
+              <input id="cl-ew-photo" type="file" accept="image/*" hidden>
+            </label>
+          </div>
+          <img id="cl-ew-photo-preview" class="cl-photo-preview" alt="" hidden>
+          <div class="cl-demos">
+            <span class="cl-demos-label">Prove it on this desk:</span>
+            <button id="cl-ew-demo-belt" class="chip" type="button">Belt squeal</button>
+            <button id="cl-ew-demo-tick" class="chip" type="button">Lifter tick</button>
+            <button id="cl-ew-demo-knock" class="chip" type="button">Rod knock</button>
+            <button id="cl-ew-demo-leak" class="chip" type="button">Boost leak</button>
+          </div>
+          <div id="cl-ew-status" class="cl-note" hidden></div>
+          <canvas id="cl-ew-spectrum" class="cl-spectrum" hidden></canvas>
+          <div id="cl-ew-results" hidden></div>
+          <div id="cl-ew-ai" class="cl-ai-panel" hidden>
+            <div class="cl-ai-head">
+              <span class="cl-ai-title">AI Diagnosis</span>
+              <span id="cl-ew-ai-engine" class="cl-ai-engine"></span>
+            </div>
+            <div id="cl-ew-ai-text" class="cl-ai-text"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. TorqueSplit -->
+      <div class="panel clinic-panel">
+        <button class="clinic-head" id="cl-ts-head" type="button" aria-expanded="false">
+          <span>TorqueSplit</span>
+          <span class="clinic-sub">plan the build before you buy parts</span>
+        </button>
+        <div class="clinic-body" hidden>
+          <p class="cl-copy">Plan the modification before you spend a dollar.
+          Slide the power up, strip the weight, pick the tires: physics-true
+          performance deltas, a half-shaft safety factor at launch torque,
+          clutch heat per launch, and a live finite-element stress map that
+          warns you BEFORE a mod snaps your stock axles.</p>
+          <details class="cl-about">
+            <summary>About this instrument</summary>
+            <p>F = ma is not a slogan here; it is the solver. Your planned
+            build runs through the same physics engine that powers the whole
+            garage: traction-limited launch, power-limited pull, drag and
+            downforce, so the 0 to 60, top speed, and braking numbers are
+            derived, not guessed. Then the driveline check: peak launch
+            torque is computed from tire grip and weight, pushed through a
+            half-shaft shear-stress formula, and compared with your chosen
+            material's yield to produce a safety factor. Below one, the
+            axle fails: the app tells you before the parking lot does. The
+            colored map at the bottom is a genuine finite element analysis,
+            the same method engineering firms use: the torque-reaction
+            bracket is meshed into elements, a stiffness matrix is
+            assembled and solved right here in your browser, and the von
+            Mises stress field paints cool teal to danger ruby. Drag the
+            power slider and watch the metal feel it.</p>
+          </details>
+          <div class="cl-form">
+            <label>Base machine
+              <select id="cl-ts-base"></select>
+            </label>
+            <label>Power target <span id="cl-ts-power-v">x1.30</span>
+              <input id="cl-ts-power" type="range" min="1" max="2.5" step="0.05" value="1.3">
+            </label>
+            <label>Weight change <span id="cl-ts-weight-v">+0 kg</span>
+              <input id="cl-ts-weight" type="range" min="-200" max="300" step="10" value="0">
+            </label>
+            <label>Tires
+              <select id="cl-ts-tire">
+                <option value="0">Touring</option>
+                <option value="1" selected>Sport</option>
+                <option value="2">Cup</option>
+                <option value="3">Slick</option>
+              </select>
+            </label>
+            <label>Bracket material
+              <select id="cl-ts-mat"></select>
+            </label>
+          </div>
+          <div id="cl-ts-results"></div>
+          <canvas id="cl-ts-fea" class="cl-fea"></canvas>
+        </div>
+      </div>
+
+      <!-- 3. LoadPulse -->
+      <div class="panel clinic-panel">
+        <button class="clinic-head" id="cl-lp-head" type="button" aria-expanded="false">
+          <span>LoadPulse</span>
+          <span class="clinic-sub">weigh your cargo with a door slam</span>
+        </button>
+        <div class="clinic-body" hidden>
+          <p class="cl-copy">Weigh your cargo with a door slam. Loading for a
+          move, a lumber run, a packed road trip? Calibrate empty, load up,
+          slam the door once, and the app tells you how many kilograms you
+          added and how close the suspension is to its rated payload:
+          before the highway finds out for you.</p>
+          <details class="cl-about">
+            <summary>About this instrument</summary>
+            <p>Your car sits on springs, and any mass on springs has a
+            natural frequency: the rate it bobs when disturbed. Add cargo
+            and that frequency drops, by exactly the square-root law
+            engineers write as omega equals root k over m. A door slam is a
+            free impulse hammer: the chassis wobbles for a second, your
+            phone's accelerometer records the wobble, and the app measures
+            its frequency with a self-calibrating estimator that cancels
+            its own bias. Compare loaded against your empty calibration and
+            the added mass falls out of the algebra: no truck scale, no
+            hardware, just physics. Real use needs the phone flat on a hard
+            interior surface with the engine off, and honest tolerance is
+            fifteen to twenty-five percent: this is a load-awareness
+            instrument, not a certified scale. The Simulate buttons inject
+            a synthetic slam through the identical pipeline and recover a
+            known 320 kg to within a few kilograms: the proof that the math
+            is real.</p>
+          </details>
+          <div class="cl-form">
+            <label>Vehicle
+              <select id="cl-lp-preset"></select>
+            </label>
+          </div>
+          <div class="cl-actions">
+            <button id="cl-lp-calibrate" class="btn-secondary" type="button">Calibrate empty</button>
+            <button id="cl-lp-measure" class="btn-secondary" type="button">Measure loaded</button>
+          </div>
+          <div class="cl-demos">
+            <span class="cl-demos-label">Prove it on this desk:</span>
+            <button id="cl-lp-sim-empty" class="chip" type="button">Simulate empty slam</button>
+            <button id="cl-lp-sim-loaded" class="chip" type="button">Simulate +320 kg slam</button>
+          </div>
+          <div id="cl-lp-cal" class="cl-note">Not calibrated</div>
+          <div id="cl-lp-result" hidden></div>
+        </div>
+      </div>
+
+      <!-- 4. PadCheck -->
+      <div class="panel clinic-panel">
+        <button class="clinic-head" id="cl-pc-head" type="button" aria-expanded="false">
+          <span>PadCheck</span>
+          <span class="clinic-sub">hear the wear indicator before it screams</span>
+        </button>
+        <div class="clinic-body" hidden>
+          <p class="cl-copy">Know your brakes before the shop tells you.
+          Hold the phone near a front wheel, tap the brakes while rolling
+          slowly, and the instrument listens for the wear indicator's
+          signature: your leverage against both the upseller and the
+          expensive sound of metal on metal.</p>
+          <details class="cl-about">
+            <summary>About this instrument</summary>
+            <p>Brake pads ship with a small steel tab tuned to sing between
+            roughly 1.8 and 4.5 kilohertz when the friction material wears
+            down to replacement depth: it is a designed-in alarm. This
+            instrument isolates exactly that band against the rest of the
+            spectrum and returns one of three states. Quiet band: pads
+            healthy, decline the upsell with confidence. Clean tone in the
+            band: the indicator is touching, roughly the two to three
+            millimeter point, plan a replacement soon. Broadband grinding
+            with no clean tone: friction material gone, every stop is
+            machining your rotors, park it. One honest limit, stated
+            plainly: millimeter-precise thickness cannot be measured
+            acoustically by any phone: the tab is a threshold announcer,
+            and this instrument reports the truth the tab was built to
+            tell.</p>
+          </details>
+          <div class="cl-actions">
+            <button id="cl-pc-rec" class="btn-secondary" type="button">Record 5 s</button>
+          </div>
+          <div class="cl-demos">
+            <span class="cl-demos-label">Prove it on this desk:</span>
+            <button id="cl-pc-demo-healthy" class="chip" type="button">Healthy brakes</button>
+            <button id="cl-pc-demo-indicator" class="chip" type="button">Indicator contact</button>
+            <button id="cl-pc-demo-grind" class="chip" type="button">Grinding</button>
+          </div>
+          <div id="cl-pc-status" class="cl-note" hidden></div>
+          <canvas id="cl-pc-spectrum" class="cl-spectrum" hidden></canvas>
+          <div id="cl-pc-results" hidden></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ TAB BAR ============================ -->
+    <nav id="tabbar">
+      <button class="tab active" type="button" data-tab="garage" aria-selected="true">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M4 20V9l8-5 8 5v11" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 20v-6a4 4 0 0 1 8 0v6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="tab-label">Garage</span>
+      </button>
+      <button class="tab" type="button" data-tab="build" aria-selected="false">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M4 8h9M17 8h3" stroke-linecap="round"/>
+            <path d="M4 16h3M11 16h9" stroke-linecap="round"/>
+            <circle cx="15" cy="8" r="2.3"/>
+            <circle cx="9" cy="16" r="2.3"/>
+          </svg>
+        </span>
+        <span class="tab-label">Build</span>
+      </button>
+      <button class="tab" type="button" data-tab="lab" aria-selected="false">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M3 8h9a2.5 2.5 0 1 0-2.4-3.2" stroke-linecap="round"/>
+            <path d="M3 12h14a2.5 2.5 0 1 1-2.4 3.2" stroke-linecap="round"/>
+            <path d="M3 16h6a2 2 0 1 1-1.9 2.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="tab-label">Lab</span>
+      </button>
+      <button class="tab" type="button" data-tab="duel" aria-selected="false">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M4 7l7 5-7 5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M13 7l7 5-7 5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="tab-label">Duel</span>
+      </button>
+      <button class="tab" type="button" data-tab="clinic" aria-selected="false">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M3 12h4l2-5 3 10 2.5-6.5L16 12h5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="tab-label">Clinic</span>
+      </button>
+      <button class="tab" type="button" data-tab="advisor" aria-selected="false">
+        <span class="gbadge tab-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H9l-5 4V6.5z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="tab-label">Advisor</span>
+      </button>
+    </nav>
+
+    <!-- ============================ SPEC CARD ============================ -->
+    <div id="speccard-overlay" hidden>
+      <div id="speccard">
+        <!-- Living gold: the Higgsfield-animated liquid-gold key art loops
+             silently behind the card head, screen-blended over the oxblood
+             base. app.js plays it on open (not under reduced motion). -->
+        <video id="sc-video" src="assets/gold-v.mp4" muted loop playsinline
+               preload="none" aria-hidden="true" tabindex="-1"></video>
+        <button id="btn-close-spec" type="button" aria-label="Close spec card">
+          <span class="gbadge sm" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <div class="sc-eyebrow eyebrow">Valence Garage</div>
+        <div id="sc-name" class="display-title">Grand Tourer</div>
+        <div id="sc-arch" class="tagline">Continental pace, velvet thunder</div>
+
+        <div id="sc-car-wrap">
+          <img id="sc-car-img" alt="" aria-hidden="true" hidden>
+          <svg id="sc-car" viewBox="0 0 400 170" aria-label="Car silhouette" role="img"></svg>
+        </div>
+
+        <div id="sc-setup">AWD &middot; Sport &middot; Wing None</div>
+
+        <div class="sc-medallions">
+          <div class="sc-medal" id="sc-power">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M13 3L5 13h5l-1 8 8-11h-5l1-7z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="sc-v">0</div>
+            <div class="sc-l">Power hp</div>
+          </div>
+          <div class="sc-medal" id="sc-ptw">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M12 3l8 9-8 9-8-9 8-9z" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="sc-v">0</div>
+            <div class="sc-l">hp / t</div>
+          </div>
+          <div class="sc-medal" id="sc-060">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M4 12h13" stroke-linecap="round"/>
+                <path d="M12 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div class="sc-v">0.0</div>
+            <div class="sc-l">0 to 60 s</div>
+          </div>
+          <div class="sc-medal" id="sc-top">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M4 18a8 8 0 0 1 16 0" stroke-linecap="round"/>
+                <path d="M12 18l4.5-5" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="sc-v">0</div>
+            <div class="sc-l">Top km/h</div>
+          </div>
+          <div class="sc-medal" id="sc-brake">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="12" cy="12" r="8.5"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </div>
+            <div class="sc-v">0</div>
+            <div class="sc-l">Brake m</div>
+          </div>
+          <div class="sc-medal" id="sc-weight">
+            <div class="sc-ring gbadge">
+              <svg class="sc-glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M12 3v3" stroke-linecap="round"/>
+                <path d="M12 6l5 11H7l5-11z" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 6v11" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="sc-v">0</div>
+            <div class="sc-l">Weight kg</div>
+          </div>
+        </div>
+
+        <div class="sc-footer">
+          <div class="sc-mono">V</div>
+          <div class="sc-built">Built in the Valence Garage</div>
+          <div class="sc-hint">Screenshot to share</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- v9 seam wipe: a gold hairline sweeps the viewport on tab changes.
+       app.js toggles .run; pure decoration, pointer-events none. -->
+  <div id="seam-wipe" aria-hidden="true"></div>
+
+  <script defer src="js/motion.js?v=31"></script>
+  <script defer src="js/fog.js?v=31"></script>
+  <script defer src="js/heroscene.js?v=31"></script>
+  <script defer src="js/orb.js?v=31"></script>
+  <script defer src="js/physics.js?v=31"></script>
+  <script defer src="js/car.js?v=31"></script>
+  <script defer src="js/cars.js?v=31"></script>
+  <script defer src="js/viewer.js?v=31"></script>
+  <script defer src="js/theater.js?v=31"></script>
+  <script defer src="js/windlab.js?v=31"></script>
+  <script defer src="js/duel.js?v=31"></script>
+  <script defer src="js/knowledge.js?v=31"></script>
+  <script defer src="js/aiengine.js?v=31"></script>
+  <script defer src="js/clinic.js?v=31"></script>
+  <script defer src="js/advisor.js?v=31"></script>
+  <script defer src="js/app.js?v=31"></script>
+  <script defer src="js/intro.js?v=31"></script>
+</body>
+</html>

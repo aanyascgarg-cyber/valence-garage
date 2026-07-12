@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>hero proof</title>
+<style>
+  body { margin:0; background:#333; }
+  .stage { position:relative; width:520px; height:300px; margin:16px; }
+</style>
+</head>
+<body>
+  <div id="withcar" class="stage"></div>
+  <div id="nocar" class="stage"></div>
+  <script src="js/heroscene.js"></script>
+  <script>
+  (function(){
+    var RECV = 'http://127.0.0.1:8321/';
+    function post(name, dataUrl){
+      return fetch(RECV + name, { method:'POST', body: dataUrl });
+    }
+    function canvasOf(el){ return el.querySelector('canvas.hero-scene-canvas'); }
+
+    var thumbs = {};
+    try { thumbs = JSON.parse(localStorage.getItem('vg-thumbs-v1')||'{}'); } catch(e){}
+    var carSrc = thumbs['valkyrie'] || thumbs['w14'] || null;
+
+    // no-car state
+    HeroScene.render(document.getElementById('nocar'), { carImgSrc:null, carName:'' });
+    // with-car state
+    HeroScene.render(document.getElementById('withcar'), { carImgSrc: carSrc, carName:'Valkyrie' });
+
+    // Wait for the car image to load and paint, then snapshot both.
+    setTimeout(function(){
+      var a = canvasOf(document.getElementById('withcar'));
+      var b = canvasOf(document.getElementById('nocar'));
+      var pa = a ? post('hero_withcar', a.toDataURL('image/png')) : Promise.resolve();
+      var pb = b ? post('hero_nocar', b.toDataURL('image/png')) : Promise.resolve();
+      Promise.all([pa,pb]).then(function(){
+        document.title = 'PROOF DONE ' + (carSrc? 'car' : 'nocar-only');
+        var d = document.createElement('div');
+        d.id = 'done'; d.textContent = 'done';
+        document.body.appendChild(d);
+      });
+    }, 1200);
+  })();
+  </script>
+</body>
+</html>

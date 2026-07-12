@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>CarArt QA harness</title>
+<style>
+  body { background: #080404; margin: 20px; font-family: sans-serif; }
+  .cell { display: inline-block; width: 320px; margin: 6px; }
+  .cell svg { width: 100%; background: #1C0808; border: 1px solid #333; }
+  .cap { color: #C9A84C; font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="grid"></div>
+<script src="../js/car.js"></script>
+<script>
+  var grid = document.getElementById('grid');
+  var cases = [];
+  for (var w = 0; w <= 4; w++) cases.push({ wingLevel: w, tireIndex: 1, accent: '#C9A84C', label: 'wing ' + w });
+  for (var t = 0; t <= 3; t++) cases.push({ wingLevel: 2, tireIndex: t, accent: '#A02020', label: 'tire ' + t });
+  cases.push({ wingLevel: 3, tireIndex: 2, accent: '#FAF4F0', label: 'porcelain' });
+  cases.forEach(function (c) {
+    var cell = document.createElement('div');
+    cell.className = 'cell';
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 400 170');
+    cell.appendChild(svg);
+    var cap = document.createElement('div');
+    cap.className = 'cap';
+    cap.textContent = c.label;
+    cell.appendChild(cap);
+    grid.appendChild(cell);
+    try {
+      CarArt.render(svg, c);
+    } catch (e) {
+      cap.textContent = c.label + ' ERROR: ' + e.message;
+    }
+  });
+</script>
+</body>
+</html>
