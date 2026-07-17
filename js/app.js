@@ -775,6 +775,26 @@
     card.className = 'car-card';
     card.setAttribute('data-car', entry.id);
 
+    // v15: every card carries a portrait of its machine. A real 3D
+    // snapshot when one is cached (the car has been on the stage), the
+    // drawn silhouette otherwise, upgrading itself silently over time.
+    var art = document.createElement('div');
+    art.className = 'car-art';
+    var snap = carImage(entry.id);
+    if (snap) {
+      var im = document.createElement('img');
+      im.alt = '';
+      im.loading = 'lazy';
+      im.src = snap;
+      art.appendChild(im);
+    } else {
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 400 170');
+      try { window.CarArt.render(svg, configFromCar(entry)); } catch (e) { }
+      art.appendChild(svg);
+    }
+    card.appendChild(art);
+
     var name = document.createElement('div');
     name.className = 'car-name';
     name.textContent = entry.name;

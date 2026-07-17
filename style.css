@@ -3165,11 +3165,15 @@ input[type="range"]:active::-moz-range-thumb {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  /* Night strip: near-black with twin gold horizon lines and haze. */
+  /* v15 key art: rain-streaked garage glass over the night city
+     (generated for this app), heavily vignetted under the strip. */
   background:
-    radial-gradient(ellipse 120% 80% at 50% 18%,
-      rgba(23, 84, 95, 0.2) 0%, transparent 60%),
-    linear-gradient(180deg, #04080B 0%, #020507 100%);
+    linear-gradient(180deg,
+      rgba(4, 8, 11, 0.55) 0%,
+      rgba(4, 8, 11, 0.72) 55%,
+      rgba(2, 5, 7, 0.92) 100%),
+    url("assets/rainglass.webp") center 40% / cover no-repeat,
+    #020507;
 }
 
 #duel-stage {
@@ -3438,10 +3442,15 @@ input[type="range"]:active::-moz-range-thumb {
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  /* v15 key art: gold thread through carbon weave, the Clinic's thesis
+     (expert knowledge woven through engineering fabric), kept whisper-dim. */
   background:
-    radial-gradient(ellipse 100% 70% at 50% 0%,
-      rgba(23, 84, 95, 0.22) 0%, transparent 55%),
-    linear-gradient(180deg, #04080B 0%, #030608 100%);
+    linear-gradient(180deg,
+      rgba(4, 8, 11, 0.82) 0%,
+      rgba(4, 8, 11, 0.9) 60%,
+      rgba(3, 6, 8, 0.96) 100%),
+    url("assets/carbongold.webp") center center / cover no-repeat,
+    #030608;
 }
 
 .clinic-panel {
@@ -3869,6 +3878,40 @@ input[type="range"]:active::-moz-range-thumb {
 .cl-ask:hover {
   background: rgba(201, 168, 76, 0.2);
   border-color: var(--gold);
+}
+
+/* ============================================================
+   V15: STABLE PORTRAITS + KEY ART SURFACES
+   ============================================================ */
+
+/* Every picker card carries its machine: a real 3D snapshot when the
+   car has been staged, the drawn silhouette until then. */
+.car-art {
+  height: 92px;
+  margin: -4px -4px 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(ellipse 90% 80% at 50% 100%,
+      rgba(23, 84, 95, 0.35) 0%, transparent 70%),
+    rgba(4, 9, 11, 0.5);
+}
+
+.car-art img,
+.car-art svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5));
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.car-card:hover .car-art img,
+.car-card:hover .car-art svg {
+  transform: scale(1.06) translateY(-2px);
 }
 
 /* ============================================================

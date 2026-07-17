@@ -266,8 +266,10 @@
   // ---------- sizing ----------
   function resize() {
     dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    var w = window.innerWidth;
-    var h = window.innerHeight;
+    // A hidden or pre-layout tab can report a 0x0 viewport; 0/0 aspect is
+    // NaN and NaN slips through Math.max into createImageData. Clamp.
+    var w = Math.max(1, window.innerWidth);
+    var h = Math.max(1, window.innerHeight);
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
     canvas.style.width = w + 'px';
