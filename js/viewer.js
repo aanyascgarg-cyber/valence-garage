@@ -131,7 +131,10 @@
     // Parametric rear wing (v11): rebuilt per car and per level change.
     wingLevel: 0,          // desired aero wing level for the displayed car
     wingGroup: null,       // THREE.Group child of modelRoot when level > 0
-    profileCache: {}       // carId|accent|wing -> { url, noseLeft }
+    profileCache: {},      // carId|accent|wing -> { url, noseLeft }
+    // Bespoke Blender showroom podium (v15).
+    podium: null,          // loaded turntable GLB root
+    podiumLoading: false
   };
 
   // Snapshot output dimensions per spec.
@@ -472,6 +475,7 @@
       var loader = new THREE.GLTFLoader();
       var url = resolveModelUrl(carEntry.file);
       loader.load(url, function (gltf) {
+        setLoadingProgress(null);
         try {
           var root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
           if (!root) throw new Error('empty gltf');
@@ -491,7 +495,14 @@
           onModelFailure(carEntry);
           resolve(false);
         }
-      }, undefined, function () {
+      }, function (ev) {
+        // Live download percentage; when the bytes finish, the label flips
+        // to FORGING for the parse phase so the stage never looks dead.
+        if (ev && ev.total > 0) {
+          var pct = Math.min(100, Math.round(100 * ev.loaded / ev.total));
+          setLoadingProgress(pct >= 100 ? 'FORGING' : ('ASSEMBLING · ' + pct + '%'));
+        }
+      }, function () {
         // Network or parse failure. On file:// this is the usual outcome
         // because Chrome blocks XHR/fetch of local files, so show the
         // one line local-server note instead of the generic model error.
@@ -499,6 +510,13 @@
         resolve(false);
       });
     });
+  }
+
+  // Update the assembling plate's text without rebuilding it.
+  function setLoadingProgress(text) {
+    if (!state.container) return;
+    var lbl = state.container.querySelector('.stage-assembling .sa-text');
+    if (lbl) lbl.textContent = text || 'ASSEMBLING';
   }
 
   // A model load failed. Show the in scene wireframe fallback, and set the
@@ -624,6 +642,10 @@
 
     // Bolt on the build's rear wing (v11): visible aero, not just numbers.
     rebuildWing();
+
+    // The bespoke showroom podium (modeled in Blender, v15) loads once and
+    // turns with whichever machine stands on it.
+    ensurePodium();
 
     // Camera intro sweep. On every show, ease from a low front three-quarter
     // start into the beauty pose over ~1.2s, then hand off to autorotate with
@@ -1005,6 +1027,9 @@
           liveWing = state.wingGroup;
           root.remove(liveWing);
         }
+        // Side profiles show the machine alone, not its display base.
+        var podiumWasVisible = state.podium && state.podium.visible;
+        if (state.podium) state.podium.visible = false;
         if (prevParent !== state.scene) state.scene.add(root);
         root.rotation.y = 0;
 
@@ -1079,6 +1104,7 @@
         }
         if (displayedHidden) displayedHidden.visible = true;
         if (liveWing) root.add(liveWing);
+        if (state.podium && podiumWasVisible) state.podium.visible = true;
         cam.fov = 35;
         cam.aspect = SNAP_W / SNAP_H;
         cam.updateProjectionMatrix();
@@ -1091,6 +1117,27 @@
         return null;
       }
     });
+  }
+
+  // ---- showroom podium (v15, authored in Blender) ---------------------------
+
+  function ensurePodium() {
+    if (state.podium || state.podiumLoading || !THREE || !state.scene) return;
+    state.podiumLoading = true;
+    try {
+      var loader = new THREE.GLTFLoader();
+      loader.load(resolveModelUrl('models/podium.glb'), function (gltf) {
+        try {
+          var root = gltf.scene || (gltf.scenes && gltf.scenes[0]);
+          if (!root) return;
+          root.traverse(function (obj) {
+            if (obj.isMesh) obj.receiveShadow = true;
+          });
+          state.podium = root;
+          state.scene.add(root);
+        } catch (e) { /* the stage works fine without its podium */ }
+      }, undefined, function () { state.podiumLoading = false; });
+    } catch (e) { state.podiumLoading = false; }
   }
 
   // prefers-reduced-motion probe that never throws.
@@ -1334,6 +1381,10 @@
     if (state.modelRoot && !state.userInteracting && !state.sweep) {
       state.modelRoot.rotation.y += state.autoRotateSpeed * dt;
     }
+    // The turntable turns with its machine.
+    if (state.podium && state.modelRoot) {
+      state.podium.rotation.y = state.modelRoot.rotation.y;
+    }
     if (state.controls) state.controls.update();
     if (state.renderer && state.scene && state.camera) {
       state.renderer.render(state.scene, state.camera);
@@ -1380,7 +1431,8 @@
         lbl = document.createElement('div');
         lbl.className = 'stage-assembling';
         lbl.setAttribute('aria-hidden', 'true');
-        lbl.innerHTML = '<span class="sa-line"></span>ASSEMBLING' +
+        lbl.innerHTML = '<span class="sa-line"></span>' +
+          '<span class="sa-text">ASSEMBLING</span>' +
           '<span class="sa-line"></span>';
         state.container.appendChild(lbl);
       }
