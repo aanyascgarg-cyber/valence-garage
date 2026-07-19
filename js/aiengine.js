@@ -35,7 +35,7 @@
   // Cloudflare Worker proxy: when set, every user gets AI with no key at
   // all — the key lives server-side as a Worker secret. A locally pasted
   // key still wins (it is the user's own quota). Filled at deploy time.
-  var PROXY_URL = '';
+  var PROXY_URL = 'https://valence-ai.aanyascgarg.workers.dev';
 
   function getKey() {
     try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; }
