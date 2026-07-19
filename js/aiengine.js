@@ -32,6 +32,11 @@
   var MODEL = 'gemini-flash-latest';
   var BASE = 'https://generativelanguage.googleapis.com/v1beta/models/';
 
+  // Cloudflare Worker proxy: when set, every user gets AI with no key at
+  // all — the key lives server-side as a Worker secret. A locally pasted
+  // key still wins (it is the user's own quota). Filled at deploy time.
+  var PROXY_URL = '';
+
   function getKey() {
     try { return localStorage.getItem(KEY_STORE) || ''; } catch (e) { return ''; }
   }
@@ -42,8 +47,12 @@
     } catch (e) { }
   }
 
+  function haveGemini() {
+    return !!getKey() || !!PROXY_URL;
+  }
+
   function status() {
-    if (getKey()) return 'gemini';
+    if (haveGemini()) return 'gemini';
     if (window.Advisor && typeof window.Advisor.generate === 'function' &&
         window.Advisor.aiOnline && window.Advisor.aiOnline()) {
       return 'webllm';
@@ -55,11 +64,11 @@
 
   function geminiStream(parts, onToken) {
     var key = getKey();
-    return fetch(BASE + MODEL + ':streamGenerateContent?alt=sse&key=' +
-      encodeURIComponent(key), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+    var url, payload;
+    if (key) {
+      url = BASE + MODEL + ':streamGenerateContent?alt=sse&key=' +
+        encodeURIComponent(key);
+      payload = {
         contents: [{ role: 'user', parts: parts }],
         // Flash-latest is a thinking model: zero the thinking budget so
         // tokens go to the answer, and give the answer real room.
@@ -68,7 +77,16 @@
           maxOutputTokens: 900,
           thinkingConfig: { thinkingBudget: 0 }
         }
-      })
+      };
+    } else {
+      // Worker proxy: same SSE stream out the other side, key never here.
+      url = PROXY_URL;
+      payload = { parts: parts };
+    }
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     }).then(function (res) {
       if (!res.ok) {
         return res.text().then(function (t) {
@@ -151,8 +169,8 @@
     hooks = hooks || {};
     var prompt = window.VGKnowledge.buildAudioPrompt(f, ranked);
 
-    if (getKey()) {
-      if (hooks.engine) hooks.engine('Gemini · free tier');
+    if (haveGemini()) {
+      if (hooks.engine) hooks.engine(getKey() ? 'Gemini · free tier' : 'Gemini · built-in');
       geminiStream([{ text: prompt }], hooks.token).then(function (full) {
         if (hooks.done) hooks.done(full, 'gemini');
       }, function (err) {
@@ -248,8 +266,8 @@
         findings = window.VGKnowledge.localPhotoAnalysis(pack.imageData);
       } catch (e) { }
 
-      if (getKey()) {
-        if (hooks.engine) hooks.engine('Gemini vision · free tier');
+      if (haveGemini()) {
+        if (hooks.engine) hooks.engine(getKey() ? 'Gemini vision · free tier' : 'Gemini vision · built-in');
         var prompt = window.VGKnowledge.buildPhotoPrompt(findings);
         geminiStream([
           { text: prompt },
