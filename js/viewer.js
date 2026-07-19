@@ -1431,9 +1431,13 @@
         lbl = document.createElement('div');
         lbl.className = 'stage-assembling';
         lbl.setAttribute('aria-hidden', 'true');
-        lbl.innerHTML = '<span class="sa-line"></span>' +
+        // A spinning forged wheel (Blender EEVEE turntable, 32-frame sprite)
+        // crowns the loader — a real machined part turning while the machine
+        // assembles, above the ASSEMBLING rule.
+        lbl.innerHTML = '<span class="sa-wheel" aria-hidden="true"></span>' +
+          '<span class="sa-row"><span class="sa-line"></span>' +
           '<span class="sa-text">ASSEMBLING</span>' +
-          '<span class="sa-line"></span>';
+          '<span class="sa-line"></span></span>';
         state.container.appendChild(lbl);
       }
     } else if (lbl) {
