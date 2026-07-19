@@ -437,6 +437,27 @@
     }
   }
 
+  // Paint-booth flourish: retrigger the inspection-light sweep over #car-stage
+  // whenever the accent changes. Toggling the class off then back on (across a
+  // reflow) restarts the CSS animations. Fully guarded; no-op if stage absent.
+  var paintFlashTimer = 0;
+  function flashPaintBooth() {
+    try {
+      var stage = byId('car-stage');
+      if (!stage) return;
+      stage.classList.remove('paint-fresh');
+      // Force reflow so the removed animation is committed before re-adding.
+      void stage.offsetWidth;
+      stage.classList.add('paint-fresh');
+      if (paintFlashTimer) clearTimeout(paintFlashTimer);
+      paintFlashTimer = setTimeout(function () {
+        stage.classList.remove('paint-fresh');
+      }, 1200);
+    } catch (e) {
+      // flourish is decorative; never let it break a paint change.
+    }
+  }
+
   // ---- garage ----------------------------------------------------------
 
   function makeMiniSvg() {
@@ -891,6 +912,7 @@
           // viewer recolor failed. Ignore.
         }
       }
+      flashPaintBooth();
     });
 
     var name = byId('build-name');

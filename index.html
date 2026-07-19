@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=25">
+  <link rel="stylesheet" href="style.css?v=26">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -36,6 +36,11 @@
     <!-- ============================ GARAGE ============================ -->
     <section id="screen-garage" class="screen active" aria-label="Garage">
       <header class="masthead">
+        <!-- Gold V monogram: a 32-frame Blender turntable (EEVEE metal +
+             rim light) played as an 8x4 stepped sprite. inline-block so it
+             follows the masthead text-align (left on mobile, centred desktop).
+             The maison crest above the wordmark. -->
+        <div id="mono-crest" aria-hidden="true"><span class="mono-sprite"></span></div>
         <div class="eyebrow">The Private Collection</div>
         <!-- v9 marquee: motion.js splits the wordmark into per-letter spans
              for the staggered rise; CSS paints the gradient + shine sweep. -->
@@ -134,6 +139,13 @@
         <div id="config-left">
         <div id="car-stage">
           <div id="viewer-mount" aria-label="3D car viewer" role="img"><!-- viewer.js fills this canvas --></div>
+          <!-- Paint booth: two inspection light bars sweep the fresh finish
+               when the accent changes (app.js toggles #car-stage.paint-fresh). -->
+          <div class="paint-booth" aria-hidden="true">
+            <span class="pb-bar"></span>
+            <span class="pb-bar pb-bar-2"></span>
+            <span class="pb-bloom"></span>
+          </div>
           <div class="stage-hairline"></div>
         </div>
 
@@ -882,23 +894,23 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=40"></script>
-  <script defer src="js/motion.js?v=40"></script>
-  <script defer src="js/fog.js?v=40"></script>
-  <script defer src="js/heroscene.js?v=40"></script>
-  <script defer src="js/orb.js?v=40"></script>
-  <script defer src="js/physics.js?v=40"></script>
-  <script defer src="js/car.js?v=40"></script>
-  <script defer src="js/cars.js?v=40"></script>
-  <script defer src="js/viewer.js?v=40"></script>
-  <script defer src="js/theater.js?v=40"></script>
-  <script defer src="js/windlab.js?v=40"></script>
-  <script defer src="js/duel.js?v=40"></script>
-  <script defer src="js/knowledge.js?v=40"></script>
-  <script defer src="js/aiengine.js?v=40"></script>
-  <script defer src="js/clinic.js?v=40"></script>
-  <script defer src="js/advisor.js?v=40"></script>
-  <script defer src="js/app.js?v=40"></script>
-  <script defer src="js/intro.js?v=40"></script>
+  <script defer src="js/atmos.js?v=41"></script>
+  <script defer src="js/motion.js?v=41"></script>
+  <script defer src="js/fog.js?v=41"></script>
+  <script defer src="js/heroscene.js?v=41"></script>
+  <script defer src="js/orb.js?v=41"></script>
+  <script defer src="js/physics.js?v=41"></script>
+  <script defer src="js/car.js?v=41"></script>
+  <script defer src="js/cars.js?v=41"></script>
+  <script defer src="js/viewer.js?v=41"></script>
+  <script defer src="js/theater.js?v=41"></script>
+  <script defer src="js/windlab.js?v=41"></script>
+  <script defer src="js/duel.js?v=41"></script>
+  <script defer src="js/knowledge.js?v=41"></script>
+  <script defer src="js/aiengine.js?v=41"></script>
+  <script defer src="js/clinic.js?v=41"></script>
+  <script defer src="js/advisor.js?v=41"></script>
+  <script defer src="js/app.js?v=41"></script>
+  <script defer src="js/intro.js?v=41"></script>
 </body>
 </html>

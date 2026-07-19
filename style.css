@@ -1185,6 +1185,95 @@ body:has(#screen-advisor.active) #fog-canvas {
   100% { background-position: -40% 0; }
 }
 
+/* --- Paint booth: overhead inspection lights sweep the fresh finish when a
+       new accent is chosen. Two soft specular bars rake diagonally across the
+       stage, and a colour bloom in the new accent blooms up from the floor,
+       so the paint reads as freshly, wetly re-sprayed. Dormant until app.js
+       adds #car-stage.paint-fresh; each element animates once then rests. --- */
+.paint-booth {
+  position: absolute;
+  inset: 14px;
+  z-index: 2;
+  border-radius: 12px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.pb-bar,
+.pb-bar-2,
+.pb-bloom {
+  position: absolute;
+  opacity: 0;
+}
+
+.pb-bar {
+  top: -40%;
+  left: -60%;
+  width: 42%;
+  height: 200%;
+  transform: rotate(18deg) translateX(-140%);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 250, 235, 0.10) 38%,
+    rgba(255, 255, 255, 0.62) 50%,
+    rgba(255, 250, 235, 0.10) 62%,
+    transparent 100%);
+  filter: blur(2px);
+  mix-blend-mode: screen;
+}
+
+.pb-bar-2 {
+  width: 26%;
+  transform: rotate(18deg) translateX(-140%);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--accent) 60%, white) 50%,
+    transparent 100%);
+  opacity: 0;
+}
+
+.pb-bloom {
+  inset: 0;
+  top: auto;
+  height: 70%;
+  background: radial-gradient(ellipse 60% 100% at 50% 100%,
+    color-mix(in srgb, var(--accent) 42%, transparent) 0%,
+    color-mix(in srgb, var(--accent) 14%, transparent) 40%,
+    transparent 72%);
+  mix-blend-mode: screen;
+}
+
+#car-stage.paint-fresh .pb-bar {
+  animation: pb-sweep 900ms cubic-bezier(0.33, 0.9, 0.4, 1) both;
+}
+#car-stage.paint-fresh .pb-bar-2 {
+  animation: pb-sweep 900ms cubic-bezier(0.33, 0.9, 0.4, 1) 90ms both;
+}
+#car-stage.paint-fresh .pb-bloom {
+  animation: pb-bloom 1100ms ease-out both;
+}
+
+@keyframes pb-sweep {
+  0%   { opacity: 0; transform: rotate(18deg) translateX(-140%); }
+  12%  { opacity: 1; }
+  88%  { opacity: 1; }
+  100% { opacity: 0; transform: rotate(18deg) translateX(330%); }
+}
+
+@keyframes pb-bloom {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #car-stage.paint-fresh .pb-bar,
+  #car-stage.paint-fresh .pb-bar-2,
+  #car-stage.paint-fresh .pb-bloom {
+    animation: none;
+  }
+}
+
 .stage-hairline {
   position: relative;
   z-index: 1;
@@ -2915,6 +3004,61 @@ input[type="range"]:active::-moz-range-thumb {
 /* --- VALENCE marquee. Italiana hairline caps, gradient-metal letters,
        staggered rise (motion.js splits into .mq-letter spans), then a
        single diagonal gleam. --- */
+/* --- Gold V monogram crest above the wordmark. A Blender turntable baked
+       to a 32-frame 8x4 sprite; two stepped animations run the columns then
+       advance the rows, so all 32 frames play as a slow, stately spin. --- */
+#mono-crest {
+  display: inline-block;
+  position: relative;
+  width: 66px;
+  height: 66px;
+  margin-bottom: 14px;
+  animation: mono-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#mono-crest::before {
+  /* soft champagne pool so the mark reads as lit, not pasted on */
+  content: '';
+  position: absolute;
+  inset: -40% -40% -50%;
+  background: radial-gradient(ellipse 50% 46% at 50% 52%,
+    rgba(201, 168, 76, 0.24) 0%, rgba(201, 168, 76, 0.08) 38%, transparent 70%);
+  pointer-events: none;
+}
+
+.mono-sprite {
+  position: absolute;
+  inset: 0;
+  background-image: url("assets/vmono-spin.webp");
+  background-size: 800% 400%;
+  background-repeat: no-repeat;
+  animation:
+    mono-x 2.4s steps(8) infinite,
+    mono-y 9.6s steps(4) infinite;
+  filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.55))
+          drop-shadow(0 0 10px rgba(201, 168, 76, 0.22));
+}
+
+@keyframes mono-x {
+  from { background-position-x: 0%; }
+  to   { background-position-x: -800%; }
+}
+
+@keyframes mono-y {
+  from { background-position-y: 0%; }
+  to   { background-position-y: -400%; }
+}
+
+@keyframes mono-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.86); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mono-sprite { animation: none; }
+  #mono-crest { animation: none; }
+}
+
 .marquee {
   position: relative;
   overflow: hidden;
