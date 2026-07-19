@@ -135,8 +135,14 @@ world.node_tree.nodes["Background"].inputs[0].default_value = (0, 0, 0, 1)
 
 out_dir = sys.argv[sys.argv.index("--") + 1]
 FRAMES = 32
+# A flat V-in-halo collapses to a thin profile at 90deg, so we do NOT spin it
+# a full turn. Instead the crest SWAYS: a seamless sine yaw of +/-25deg that
+# reveals real 3D parallax on the blades and ring while always reading as a V.
+# sin() over one full period loops perfectly (f=0 and f=FRAMES both yaw 0).
+SWAY = math.radians(25)
 for f in range(FRAMES):
-    pivot.rotation_euler = (0, 0, 2 * math.pi * f / FRAMES)
+    yaw = SWAY * math.sin(2 * math.pi * f / FRAMES)
+    pivot.rotation_euler = (0, 0, yaw)
     scene.render.filepath = "%s/f%02d.png" % (out_dir, f)
     bpy.ops.render.render(write_still=True)
 

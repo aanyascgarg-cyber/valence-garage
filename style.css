@@ -3029,7 +3029,7 @@ input[type="range"]:active::-moz-range-thumb {
 .mono-sprite {
   position: absolute;
   inset: 0;
-  background-image: url("assets/vmono-spin.webp");
+  background-image: url("assets/vmono-spin.webp?v=2");
   background-size: 800% 400%;
   background-repeat: no-repeat;
   animation:
