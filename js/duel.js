@@ -467,6 +467,10 @@
     }
 
     el.innerHTML =
+      '<div class="trophy-cine" aria-hidden="true">' +
+        '<div class="trophy-rays"></div>' +
+        '<div class="trophy-sprite"></div>' +
+      '</div>' +
       '<div class="dr-verdict">' + winner.name + ' takes it</div>' +
       '<div class="dr-gap">by ' + fmt(gapT, 2) + ' s &middot; ' +
         fmt(gapM, 0) + ' m of daylight</div>' +
@@ -656,7 +660,9 @@
       bindOnce();
       size();
       if (!state.you) window.Duel.show(null);
-      arm();
+      // Only arm from rest; arming mid-run is the ABORT gesture in the
+      // real UI and would cancel the race this proof is trying to finish.
+      if (state.phase === 'idle' || state.phase === 'done') arm();
       var steps = Math.round((seconds || 4) * 60);
       for (var i = 0; i < steps; i++) advance(1 / 60);
       draw();

@@ -174,10 +174,13 @@
     var speedK = state.speedKmh / 200;             // 1.0 at reference speed
     var pxPerSec = state.w * (0.16 + 0.5 * speedK);
 
-    // Fade previous frame: long elegant trails.
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = 'rgba(4, 9, 11, ' + TRAIL_ALPHA + ')';
+    // Fade previous frame toward TRANSPARENCY (destination-out), so the
+    // Blender-rendered chamber behind the canvas stays visible and the
+    // streamline trails float inside it.
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.fillStyle = 'rgba(0, 0, 0, ' + TRAIL_ALPHA + ')';
     ctx.fillRect(0, 0, state.w, state.h);
+    ctx.globalCompositeOperation = 'source-over';
 
     // Ground line.
     ctx.strokeStyle = 'rgba(201, 168, 76, 0.25)';
@@ -282,8 +285,7 @@
   function drawStatic() {
     var ctx = state.ctx;
     if (!ctx) return;
-    ctx.fillStyle = '#04090B';
-    ctx.fillRect(0, 0, state.w, state.h);
+    ctx.clearRect(0, 0, state.w, state.h);
     // Advance the sim deterministically so full streamline paths exist.
     for (var s = 0; s < 240; s++) stepAndDraw(1 / 60);
   }
