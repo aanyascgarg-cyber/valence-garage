@@ -294,6 +294,46 @@
     });
   }
 
+  // ---- public: open conversation (the Advisor's brain) -----------------------------
+  //
+  // The Advisor used to run a 1B on-device model (WebLLM), which meant a
+  // several-hundred-megabyte download and a warmup that phones simply could not
+  // finish. It now shares this engine, so replies arrive in about a second on
+  // any device and the reasoning is frontier grade.
+  //
+  // The Worker proxy accepts a single user turn, so multi-turn context travels
+  // as a flattened transcript. That keeps the deployed proxy unchanged and
+  // works identically whether the caller has their own key or not.
+  function chat(systemPrompt, history, userText, hooks) {
+    hooks = hooks || {};
+    if (!haveGemini()) {
+      if (hooks.error) hooks.error('AI unavailable');
+      return;
+    }
+    var lines = [systemPrompt, ''];
+    if (history && history.length) {
+      lines.push('The conversation so far:');
+      for (var i = 0; i < history.length; i++) {
+        var m = history[i];
+        lines.push((m.role === 'user' ? 'Owner: ' : 'Advisor: ') + m.content);
+      }
+      lines.push('');
+    }
+    lines.push('Owner: ' + userText);
+    lines.push('Advisor:');
+
+    geminiStream([{ text: lines.join('\n') }], hooks.token).then(function (full) {
+      var text = (full || '').trim();
+      if (!text) {
+        if (hooks.error) hooks.error('empty reply');
+        return;
+      }
+      if (hooks.done) hooks.done(text);
+    }, function (err) {
+      if (hooks.error) hooks.error(err && err.message ? err.message : String(err));
+    });
+  }
+
   // ---- key sanity test --------------------------------------------------------------
 
   function test(cb) {
@@ -321,6 +361,11 @@
     getKey: getKey,
     setKey: setKey,
     status: status,
+    available: haveGemini,
+    chat: function (sys, hist, text, h) {
+      try { chat(sys, hist, text, h); }
+      catch (e) { if (h && h.error) h.error(String(e)); }
+    },
     narrateAudio: function (f, r, h) { try { narrateAudio(f, r, h); } catch (e) { if (h && h.error) h.error(String(e)); } },
     analyzePhoto: function (file, h) { try { analyzePhoto(file, h); } catch (e) { if (h && h.error) h.error(String(e)); } },
     test: function (cb) { try { test(cb); } catch (e) { cb(String(e)); } }

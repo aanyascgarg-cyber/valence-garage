@@ -59,6 +59,11 @@
 
   var voiceOn = false;
 
+  // True while answering a question that arrived by voice (the orb), so the
+  // reply is spoken back even when the speaker toggle is off. Typed questions
+  // leave this false and stay silent unless the user turns the speaker on.
+  var spokenTurn = false;
+
   // Last full advisor reply text, so enabling voice can speak it on demand and
   // the AI path can speak the complete answer (not streamed chunks).
   var lastReplyText = '';
@@ -708,13 +713,60 @@
 
   // ---- voice (optional, feature detected) ------------------------------
 
+  // Pick the most natural English voice the device offers, preferring the
+  // higher quality non-local voices platforms ship for their assistants.
+  // Cached because getVoices() populates asynchronously on some browsers.
+  var chosenVoice = null;
+  function pickVoice() {
+    if (chosenVoice) return chosenVoice;
+    if (typeof window.speechSynthesis === 'undefined') return null;
+    var list = [];
+    try { list = window.speechSynthesis.getVoices() || []; } catch (e) { return null; }
+    if (!list.length) return null;
+    var PREFER = [
+      'Google UK English Female', 'Google US English', 'Samantha', 'Serena',
+      'Karen', 'Daniel', 'Microsoft Aria', 'Microsoft Jenny', 'Microsoft Guy'
+    ];
+    for (var p = 0; p < PREFER.length; p++) {
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].name && list[i].name.indexOf(PREFER[p]) === 0) {
+          chosenVoice = list[i];
+          return chosenVoice;
+        }
+      }
+    }
+    // Otherwise the first English voice available.
+    for (var j = 0; j < list.length; j++) {
+      if (list[j].lang && list[j].lang.indexOf('en') === 0) {
+        chosenVoice = list[j];
+        return chosenVoice;
+      }
+    }
+    chosenVoice = list[0];
+    return chosenVoice;
+  }
+
+  if (typeof window.speechSynthesis !== 'undefined' &&
+      typeof window.speechSynthesis.addEventListener === 'function') {
+    window.speechSynthesis.addEventListener('voiceschanged', function () {
+      chosenVoice = null;
+      pickVoice();
+    });
+  }
+
+  // Speaks when the speaker toggle is on, OR when this turn arrived by voice:
+  // asking out loud should always be answered out loud.
   function speak(text) {
-    if (!voiceOn) return;
+    if (!voiceOn && !spokenTurn) return;
     if (typeof window.speechSynthesis === 'undefined') return;
+    if (!text) return;
     try {
       window.speechSynthesis.cancel();
       var u = new window.SpeechSynthesisUtterance(text);
-      u.rate = 0.95;
+      u.rate = 0.98;
+      u.pitch = 1.0;
+      var v = pickVoice();
+      if (v) { u.voice = v; if (v.lang) u.lang = v.lang; }
       window.speechSynthesis.speak(u);
     } catch (e) {
       // never throw on speech
@@ -738,30 +790,31 @@
   }
 
   // ======================================================================
-  // AI CHAT (WebLLM). Lazy, capability gated, fallback safe.
-  // mode: 'fallback' until an engine is ready, then 'ai'. During init the
-  // engine is warming up but typed input still answers in fallback style.
+  // AI CHAT. Runs on the garage's built-in AI (window.AIEngine, Gemini through
+  // the Valence Worker), so there is no key, no download, and no warmup.
+  //
+  // HISTORY, so nobody reintroduces the old problem: this used to load a 1B
+  // parameter model (Llama-3.2-1B via WebLLM) into the browser and run it on the
+  // user's own device. That was the only way to have real AI before the Worker
+  // existed, but it meant a several-hundred-megabyte download, a warmup that
+  // showed "warming up, 50 percent", and phones that stalled forever because
+  // they could not hold the model in memory. The Worker made that constraint
+  // obsolete: every visitor now gets a frontier model in about a second.
+  //
+  // mode: 'ai' when the built-in AI answers, 'fallback' when the deterministic
+  // rule engine answers (offline, or the AI is unreachable). The rule engine is
+  // the floor and it never leaves, so the Advisor always replies.
   // ======================================================================
 
   var ai = {
     mode: 'fallback',   // 'fallback' | 'ai'
-    engine: null,       // MLCEngine once ready
-    started: false,     // init attempted (once only)
-    warming: false,     // init in progress
+    started: false,     // capability check done (once only)
     generating: false,  // a reply is currently being produced (queue guard)
     history: []         // rolling [{role, content}], user/assistant only
   };
 
-  // Preference order. First available in prebuiltAppConfig.model_list wins.
-  var MODEL_PREFERENCE = [
-    'Llama-3.2-1B-Instruct-q4f16_1-MLC',
-    'Qwen2.5-1.5B-Instruct-q4f16_1-MLC'
-  ];
-
-  var WEBLLM_CDN = 'https://esm.run/@mlc-ai/web-llm';
-
   var SYSTEM_PROMPT = [
-    'You are the Valence Garage build advisor, an on-device assistant for a hypercar configurator.',
+    'You are the Valence Garage build advisor, the concierge for a hypercar configurator.',
     'Your voice is precise, calm, and slightly sardonic, but never rude.',
     'When the user greets you, greet them back briefly in one line, then invite a question.',
     'Always answer the exact question the user asked before offering anything extra.',
@@ -774,15 +827,8 @@
     'Do not use em dashes.'
   ].join(' ');
 
-  // Warmup guardrails. Hard ceiling on total warmup, plus a stall watchdog that
-  // fires if the init progress callback stops moving for STALL_MS.
-  var WARMUP_HARD_MS = 45000;
-  var WARMUP_STALL_MS = 20000;
-  var warmupHardTimer = null;
-  var warmupStallTimer = null;
-
-  // The one calm line shown when warmup gives up. Shown briefly, then hidden.
-  var FALLBACK_NOTICE = 'The on-device AI is unavailable here. You have my rules instead.';
+  // Shown only if the built-in AI cannot be reached at all (offline).
+  var FALLBACK_NOTICE = 'Offline. You have my rules instead.';
 
   // ---- status line -----------------------------------------------------
 
@@ -836,147 +882,32 @@
     return parts.join(' ');
   }
 
-  // Assemble the message array for a request: system + context + rolling history.
-  function buildMessages() {
-    var msgs = [{ role: 'system', content: SYSTEM_PROMPT + '\n\n' + buildContext() }];
-    var hist = ai.history.slice(-12); // last 6 turns (user + assistant)
-    for (var i = 0; i < hist.length; i++) msgs.push(hist[i]);
-    return msgs;
-  }
+  // ---- readiness -------------------------------------------------------
 
-  // ---- lazy init -------------------------------------------------------
-
+  // No download, no warmup, no capability gate: either the built-in AI is
+  // reachable (the overwhelmingly common case) or we answer from rules.
+  // Synchronous and instant, so the very first message is already fast.
   function initAI() {
     if (ai.started) return;
     ai.started = true;
-
-    // Capability gate: WebGPU must exist.
-    if (typeof navigator === 'undefined' || !navigator.gpu) {
-      quietFallback();
-      return;
+    // One quiet line only if there is no connection at all, so the owner knows
+    // why the answers are terser than usual. Otherwise say nothing: the AI is
+    // simply ready.
+    if (refreshMode() !== 'ai') {
+      showStatus(FALLBACK_NOTICE);
+      window.setTimeout(hideStatus, 4200);
     }
-    ai.warming = true;
-    showStatus('Warming up the advisor');
-    startWarmupTimers();
-    runInit();
   }
 
-  // Hard ceiling: if the engine is not ready within WARMUP_HARD_MS, give up and
-  // fall back with the one calm line. The stall watchdog is (re)armed on every
-  // progress callback; if it fires the same fallback path runs.
-  function startWarmupTimers() {
-    clearWarmupTimers();
-    warmupHardTimer = window.setTimeout(function () {
-      warmupTimedOut();
-    }, WARMUP_HARD_MS);
-    armStallTimer();
-  }
-
-  function armStallTimer() {
-    if (warmupStallTimer) window.clearTimeout(warmupStallTimer);
-    warmupStallTimer = window.setTimeout(function () {
-      warmupTimedOut();
-    }, WARMUP_STALL_MS);
-  }
-
-  function clearWarmupTimers() {
-    if (warmupHardTimer) { window.clearTimeout(warmupHardTimer); warmupHardTimer = null; }
-    if (warmupStallTimer) { window.clearTimeout(warmupStallTimer); warmupStallTimer = null; }
-  }
-
-  // Warmup ceiling or stall reached. Switch to fallback for the session and show
-  // the one calm status line, then hide it. If the engine has already come
-  // online (race), do nothing.
-  function warmupTimedOut() {
-    if (ai.mode === 'ai') return;
-    clearWarmupTimers();
-    ai.mode = 'fallback';
-    ai.engine = null;
-    ai.warming = false;
-    showStatus(FALLBACK_NOTICE);
-    window.setTimeout(hideStatus, 4200);
-  }
-
-  // All await wrapped. Any failure at any stage drops to fallback quietly.
-  function runInit() {
-    (function () {
-      var enginePromise;
-      try {
-        enginePromise = createEngine();
-      } catch (e) {
-        quietFallback();
-        return;
-      }
-      Promise.resolve(enginePromise).then(function (engine) {
-        // If warmup already timed out into fallback, discard the late engine so
-        // we do not flip modes underneath a conversation in progress.
-        if (ai.mode !== 'fallback' && !engine) { quietFallback(); return; }
-        if (ai.mode === 'fallback' && !ai.warming) return; // timed out already
-        if (!engine) { quietFallback(); return; }
-        clearWarmupTimers();
-        ai.engine = engine;
-        ai.mode = 'ai';
-        ai.warming = false;
-        showStatus('Advisor online');
-        window.setTimeout(hideStatus, 1600);
-      }).catch(function () {
-        quietFallback();
-      });
-    })();
-  }
-
-  // Dynamic import + engine creation. Returns a Promise resolving to the engine
-  // or null. Never throws (rejection handled by caller).
-  function createEngine() {
-    return import(/* webpackIgnore: true */ WEBLLM_CDN).then(function (webllm) {
-      if (!webllm || typeof webllm.CreateMLCEngine !== 'function') return null;
-      var model = selectModel(webllm);
-      if (!model) return null;
-      return webllm.CreateMLCEngine(model, { initProgressCallback: onInitProgress });
-    });
-  }
-
-  // Pick the first preferred model actually present in the prebuilt list.
-  function selectModel(webllm) {
-    var list = [];
-    try {
-      var cfg = webllm.prebuiltAppConfig;
-      if (cfg && cfg.model_list) {
-        for (var i = 0; i < cfg.model_list.length; i++) {
-          if (cfg.model_list[i] && cfg.model_list[i].model_id) list.push(cfg.model_list[i].model_id);
-        }
-      }
-    } catch (e) {
-      list = [];
-    }
-    for (var p = 0; p < MODEL_PREFERENCE.length; p++) {
-      if (list.indexOf(MODEL_PREFERENCE[p]) >= 0) return MODEL_PREFERENCE[p];
-    }
-    // Preferred models missing from the runtime list: fall back to first pref
-    // and let init succeed or fail (WebLLM will error, we drop to fallback).
-    return list.length ? null : MODEL_PREFERENCE[0];
-  }
-
-  function onInitProgress(report) {
-    if (ai.mode === 'ai') return; // already online
-    if (!ai.warming) return;      // already timed out into fallback
-    armStallTimer();              // progress moved: reset the stall watchdog
-    var pct = null;
-    if (report && typeof report.progress === 'number') {
-      pct = Math.round(report.progress * 100);
-    }
-    if (pct !== null && !isNaN(pct)) {
-      showStatus('Warming up the advisor, ' + pct + ' percent');
-    } else if (report && report.text) {
-      showStatus('Warming up the advisor');
-    }
+  function refreshMode() {
+    var ready = !!(window.AIEngine && typeof window.AIEngine.chat === 'function' &&
+      typeof window.AIEngine.available === 'function' && window.AIEngine.available());
+    ai.mode = ready ? 'ai' : 'fallback';
+    return ai.mode;
   }
 
   function quietFallback() {
-    clearWarmupTimers();
     ai.mode = 'fallback';
-    ai.engine = null;
-    ai.warming = false;
     hideStatus();
   }
 
@@ -1004,90 +935,38 @@
     ai.history.push({ role: 'user', content: text });
 
     var holder = appendStreamingBubble();
-    var acc = '';
+    var settled = false;
 
-    (function () {
-      var streamPromise;
-      try {
-        streamPromise = ai.engine.chat.completions.create({
-          stream: true,
-          messages: buildMessages(),
-          temperature: 0.7,
-          max_tokens: 320
-        });
-      } catch (e) {
-        finishWithFallback(holder, text);
-        setGenerating(false);
-        return;
-      }
+    // The live build travels with every turn, so the advice is always about the
+    // machine actually on the stage.
+    var system = SYSTEM_PROMPT + '\n\n' + buildContext();
 
-      Promise.resolve(streamPromise).then(function (stream) {
-        return consumeStream(stream, holder, function (chunk) {
-          acc += chunk;
-        });
-      }).then(function () {
-        var full = acc.trim();
-        if (!full) { finishWithFallback(holder, text); return; }
+    window.AIEngine.chat(system, ai.history.slice(0, -1).slice(-10), text, {
+      token: function (chunk) {
+        if (settled || !holder || !holder.textNode) return;
+        holder.textNode.textContent += chunk;
+        scrollThread();
+      },
+      done: function (full) {
+        if (settled) return;
+        settled = true;
         ai.history.push({ role: 'assistant', content: full });
         trimHistory();
         if (holder && holder.textNode) holder.textNode.textContent = full;
         lastReplyText = full;
+        // Voice replies to voice questions; the speaker toggle covers the rest.
         speak(full);
         try { attachApplyIfParsed(holder.wrap, full); } catch (e) { /* parsing never breaks chat */ }
         scrollThread();
-      }).catch(function () {
-        finishWithFallback(holder, text);
-      }).then(function () {
-        // Always re-enable sending once the reply settles, success or failure.
         setGenerating(false);
-      });
-    })();
-  }
-
-  // Iterate an async-iterable stream (or a promise of one), pulling delta text
-  // out of each chunk and calling onChunk. Progressive textContent updates.
-  function consumeStream(stream, holder, onChunk) {
-    if (!stream || typeof stream[Symbol.asyncIterator] !== 'function') {
-      // Non streaming shape: a single completion object.
-      var one = extractDelta(stream);
-      if (one) {
-        onChunk(one);
-        if (holder && holder.textNode) holder.textNode.textContent += one;
-        scrollThread();
+      },
+      error: function () {
+        if (settled) return;
+        settled = true;
+        finishWithFallback(holder, text);
+        setGenerating(false);
       }
-      return Promise.resolve();
-    }
-    var iterator = stream[Symbol.asyncIterator]();
-    function step() {
-      return iterator.next().then(function (res) {
-        if (res.done) return;
-        var piece = extractDelta(res.value);
-        if (piece) {
-          onChunk(piece);
-          if (holder && holder.textNode) {
-            holder.textNode.textContent += piece;
-            scrollThread();
-          }
-        }
-        return step();
-      });
-    }
-    return step();
-  }
-
-  // Pull the incremental text from a WebLLM chunk (streaming delta) or a full
-  // completion object. Tolerant of both shapes.
-  function extractDelta(chunk) {
-    if (!chunk) return '';
-    try {
-      var ch = chunk.choices && chunk.choices[0];
-      if (!ch) return '';
-      if (ch.delta && typeof ch.delta.content === 'string') return ch.delta.content;
-      if (ch.message && typeof ch.message.content === 'string') return ch.message.content;
-    } catch (e) {
-      return '';
-    }
-    return '';
+    });
   }
 
   function trimHistory() {
@@ -1211,18 +1090,21 @@
     appendUser(text);
     setChatState();
 
+    // Typed question: answer in text. The speaker toggle can still opt in.
+    spokenTurn = false;
+
     // AI path: stream the reply. Send stays disabled until the stream settles,
     // re-enabled in aiChat's finally. Every send is answered (stream start or a
     // deterministic fallback inside aiChat on any failure).
-    if (ai.mode === 'ai' && ai.engine) {
+    if (refreshMode() === 'ai') {
       setGenerating(true);
       aiChat(text);
       return;
     }
 
-    // Fallback (or still warming): conversational intent router. Renders
-    // synchronously, well within the 2 second guarantee. Guard the button
-    // through the render so a rapid double press cannot double fire.
+    // Fallback: conversational intent router. Renders synchronously, well
+    // within the 2 second guarantee. Guard the button through the render so a
+    // rapid double press cannot double fire.
     setGenerating(true);
     try {
       routeFallback(text);
@@ -1458,7 +1340,7 @@
       var text = String(finalText || '').trim();
       if (text) {
         clearVoiceLive();
-        submitMessage(text);
+        submitMessage(text, true);   // asked by voice, answer by voice
       }
       // No final text (user tapped to cancel, or silence): leave any notice
       // as-is; if #voice-live only held interim text, clear it.
@@ -1487,7 +1369,7 @@
   // Single entry point for a user message from any source. Flips to chat
   // state, appends the user bubble, and routes to AI or fallback exactly as
   // the typed path did. Keeps the always-reply guarantee.
-  function submitMessage(text) {
+  function submitMessage(text, spoken) {
     var clean = String(text || '').trim();
     if (!clean) return;
     if (ai.generating) return;
@@ -1495,7 +1377,10 @@
     setChatState();
     appendUser(clean);
 
-    if (ai.mode === 'ai' && ai.engine) {
+    // Asked out loud (the orb), so answer out loud regardless of the toggle.
+    spokenTurn = !!spoken;
+
+    if (refreshMode() === 'ai') {
       setGenerating(true);
       aiChat(clean);
       return;
@@ -1615,52 +1500,18 @@
     init: init,
 
     // v13 public surface for the Clinic and deep links.
-
-    // True when the on-device WebLLM finished warming and is answering.
+    //
+    // The Clinic's chain used to be Gemini, then this on-device engine, then the
+    // knowledge base. The on-device engine is gone (see the AI CHAT note above),
+    // so the chain is now Gemini, then the knowledge base. These two members stay
+    // for compatibility and report honestly that there is no separate local
+    // engine to fall to.
     aiOnline: function () {
-      return ai.mode === 'ai' && !!ai.engine;
+      return false;
     },
 
-    // One-shot generation with a custom prompt, OUTSIDE the chat thread.
-    // Streams tokens to onToken, resolves the full text. Rejects if the
-    // local engine is unavailable or errors; callers fall back.
-    generate: function (prompt, onToken) {
-      return new Promise(function (resolve, reject) {
-        if (!(ai.mode === 'ai' && ai.engine)) {
-          reject(new Error('local engine offline'));
-          return;
-        }
-        var acc = '';
-        var p;
-        try {
-          p = ai.engine.chat.completions.create({
-            stream: true,
-            messages: [{ role: 'user', content: prompt }],
-            temperature: 0.6,
-            max_tokens: 380
-          });
-        } catch (e) { reject(e); return; }
-        Promise.resolve(p).then(function (stream) {
-          function step(iter) {
-            return iter.next().then(function (r) {
-              if (r.done) return;
-              var delta = '';
-              try {
-                delta = (r.value.choices && r.value.choices[0] &&
-                  r.value.choices[0].delta &&
-                  r.value.choices[0].delta.content) || '';
-              } catch (e) { }
-              if (delta) { acc += delta; if (onToken) onToken(delta); }
-              return step(iter);
-            });
-          }
-          var iter = stream[Symbol.asyncIterator]
-            ? stream[Symbol.asyncIterator]()
-            : null;
-          if (!iter) { reject(new Error('non-streaming engine')); return; }
-          return step(iter).then(function () { resolve(acc); });
-        }).catch(reject);
-      });
+    generate: function () {
+      return Promise.reject(new Error('no local engine; use AIEngine'));
     },
 
     // Programmatic question: used by "Ask the Advisor" deep links. Flips

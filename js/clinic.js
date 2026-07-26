@@ -1111,23 +1111,9 @@
           : 'Built-in AI offline · knowledge-base mode · full text still works');
       s.className = 'cl-ai-status ' + st;
     }
-    var keyIn = el('cl-ai-key');
-    if (keyIn && window.AIEngine) {
-      keyIn.value = window.AIEngine.getKey();
-      on('cl-ai-save', function () {
-        window.AIEngine.setKey(keyIn.value);
-        reflectAiStatus();
-        var msg = el('cl-ai-msg');
-        if (msg) msg.textContent = keyIn.value.trim()
-          ? 'Saved to this browser only. Testing...' : 'Key cleared.';
-        if (keyIn.value.trim()) {
-          window.AIEngine.test(function (err, ok) {
-            if (msg) msg.textContent = err || ok;
-          });
-        }
-      });
-      reflectAiStatus();
-    }
+    // The AI is built in, so there is no key field to wire any more. The status
+    // line still reports which engine is answering, so reflect it on open.
+    reflectAiStatus();
 
     // --- PadCheck ---
     on('cl-pc-rec', function () {

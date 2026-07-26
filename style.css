@@ -1860,12 +1860,25 @@ input[type="range"]:focus::-moz-range-thumb {
   min-height: 0;
 }
 
-/* Thread takes all remaining height and scrolls; chips + input stay in view. */
+/* Thread takes all remaining height and scrolls; chips + input stay in view.
+   min-height is a HARD FLOOR, never 0. It used to be 0, which let the flex
+   column steal every pixel from the thread whenever a sibling was too tall
+   (the compacting orb stalling at its 400px hero size was enough). The thread
+   collapsed to zero height and clipped the whole conversation, so the advisor
+   looked like an empty black screen. A real floor makes that impossible. */
 #screen-advisor.state-chat #advisor-thread {
   flex: 1 1 auto;
-  min-height: 0;
+  min-height: 38vh;
   overflow-y: auto;
   margin-bottom: 12px;
+}
+
+/* Belt and braces: in chat state the header is only a 56px orb plus the
+   speaker button, so cap it. Even if a child misbehaves it can never eat the
+   conversation again. */
+#screen-advisor.state-chat #advisor-hero {
+  max-height: 88px;
+  overflow: hidden;
 }
 
 #screen-advisor.state-chat #advisor-chips {
@@ -1967,7 +1980,10 @@ input[type="range"]:focus::-moz-range-thumb {
   cursor: pointer;
   border-radius: 50%;
   -webkit-tap-highlight-color: transparent;
-  transition: width 320ms ease, height 320ms ease, margin 320ms ease;
+  /* No width/height transition. Animating layout box size between the 400px
+     hero orb and the 56px chat orb was fragile: when the interpolation stalled
+     the orb stayed huge, overflowed the flex column, and collapsed the message
+     thread to nothing. The state swap is now instant and deterministic. */
 }
 
 /* Keyboard focus ring for the tappable orb (role button). */
