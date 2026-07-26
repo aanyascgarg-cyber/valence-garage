@@ -151,6 +151,15 @@
   // resolves false rather than throwing.
   function mount(containerEl) {
     if (state.mounted) return Promise.resolve(true);
+    // Concurrent-call guard. loadLibs() is async (it injects ~600 KB of
+    // Three.js), and state.mounted only flips true AFTER it resolves. Without
+    // memoizing the in-flight promise, a second mount() call before the first
+    // finishes slips past the state.mounted check and builds a SECOND renderer
+    // and canvas. On slower connections that happened several times, stacking
+    // orphan canvases: the live renderer drew to the last (clipped) canvas
+    // while an empty one sat on top, so the stage looked blank. Return the
+    // single in-flight promise instead.
+    if (state.mountPromise) return state.mountPromise;
     state.container = containerEl;
 
     // Fail fast and clearly if this browser has no WebGL at all.
@@ -162,13 +171,15 @@
       return Promise.resolve(false);
     }
 
-    return loadLibs().then(function () {
+    state.mountPromise = loadLibs().then(function () {
       try {
         clearDiagnostic(containerEl);
         buildScene(containerEl);
         state.mounted = true;
+        state.mountPromise = null;
         return true;
       } catch (err) {
+        state.mountPromise = null;
         showDiagnostic(containerEl, REASON.WEBGL, function () {
           state.mounted = false;
           return mount(containerEl);
@@ -177,6 +188,7 @@
       }
     }).catch(function () {
       // The runtime scripts themselves failed to load.
+      state.mountPromise = null;
       libPromise = null; // allow a Retry to try the injection again
       showDiagnostic(containerEl, REASON.RUNTIME, function () {
         state.mounted = false;
@@ -184,6 +196,7 @@
       });
       return false;
     });
+    return state.mountPromise;
   }
 
   // Quick WebGL capability probe that never throws.
@@ -198,6 +211,14 @@
   }
 
   function buildScene(containerEl) {
+    // Defensive: never leave a stale <canvas> stacked in the mount. If a prior
+    // renderer canvas somehow survives (an earlier race, or a re-entry), remove
+    // it so exactly one live canvas ever occupies the stage.
+    var stale = containerEl.querySelectorAll('canvas');
+    for (var si = 0; si < stale.length; si++) {
+      stale[si].parentNode && stale[si].parentNode.removeChild(stale[si]);
+    }
+
     var renderer = new THREE.WebGLRenderer({
       antialias: true,
       alpha: true,
@@ -1656,7 +1677,29 @@
         modelScale: state.modelRoot
           ? Math.round(state.modelRoot.scale.x * 10000) / 10000 : null,
         sweepActive: !!state.sweep,
-        threeRevision: THREE ? THREE.REVISION : null
+        threeRevision: THREE ? THREE.REVISION : null,
+        canvasCount: state.container
+          ? state.container.querySelectorAll('canvas').length : 0,
+        // Is the framed model actually inside the camera frustum? (catches the
+        // "loads but off-screen" class of bug that .visible alone hides.)
+        onScreen: (function () {
+          try {
+            if (!state.modelRoot || !state.camera) return 'no-model';
+            state.camera.updateMatrixWorld();
+            state.camera.updateProjectionMatrix();
+            var b = new THREE.Box3().setFromObject(state.modelRoot);
+            if (b.isEmpty()) return 'empty-box';
+            var c = new THREE.Vector3(); b.getCenter(c);
+            var ndc = c.clone().project(state.camera);
+            var lights = 0;
+            state.scene.traverse(function (o) { if (o.isLight) lights++; });
+            return {
+              centerNDC: [ndc.x, ndc.y, ndc.z].map(function (v) { return Math.round(v * 1000) / 1000; }),
+              inView: Math.abs(ndc.x) <= 1 && Math.abs(ndc.y) <= 1 && ndc.z >= -1 && ndc.z <= 1,
+              lights: lights
+            };
+          } catch (e) { return 'err:' + e.message; }
+        })()
       };
     }
   };
