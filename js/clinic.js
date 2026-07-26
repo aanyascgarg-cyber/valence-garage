@@ -1101,11 +1101,14 @@
       var s = el('cl-ai-status');
       if (!s || !window.AIEngine) return;
       var st = window.AIEngine.status();
+      var ownKey = !!window.AIEngine.getKey();
       s.textContent = st === 'gemini'
-        ? 'Gemini connected · free tier · photos and prose enabled'
+        ? (ownKey
+            ? 'Active · using your own Gemini key · photos and prose enabled'
+            : 'Active · built-in AI, no key needed · photos and prose enabled')
         : (st === 'webllm'
-          ? 'No key · local WebLLM narrates audio · photos use the color analyzer'
-          : 'No key · knowledge-base mode · add the free key for full AI');
+          ? 'Built-in AI busy · on-device model narrating · photos use the color analyzer'
+          : 'Built-in AI offline · knowledge-base mode · full text still works');
       s.className = 'cl-ai-status ' + st;
     }
     var keyIn = el('cl-ai-key');
