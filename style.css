@@ -1837,7 +1837,11 @@ input[type="range"]:focus::-moz-range-thumb {
    width, centered. Order top to bottom: compact orb (hero) at the top center,
    then the scrollable thread taking the remaining height, then chips, then the
    input row pinned at the bottom. This holds at BOTH 375 and 1365 widths. */
-#screen-advisor.state-chat {
+/* MUST carry .active. Screens hide with `.screen { display: none }`, which is a
+   single class. This rule is an id plus a class, so without `.active` it wins
+   forever: once the advisor had entered chat mode it never hid again and it
+   floated on top of whatever tab you switched to (Build, Clinic, all of them). */
+#screen-advisor.state-chat.active {
   display: flex;
   flex-direction: column;
   width: 100%;
