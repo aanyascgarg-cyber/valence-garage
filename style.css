@@ -184,8 +184,9 @@ body:has(#screen-advisor.active) #fog-canvas {
     #04080B;
 }
 
-/* Advisor: pure black stage (#000 to #050505) with a faint gold floor glow
-   rising from the bottom. Opaque; no space image, no fog. */
+/* Advisor stage: a soft dark grey room (#141414) rather than pure black, which
+   read as too harsh, with a faint gold floor glow rising from the bottom.
+   Opaque; no space image, no fog. */
 #screen-advisor::before {
   content: '';
   position: fixed;
@@ -194,10 +195,10 @@ body:has(#screen-advisor.active) #fog-canvas {
   pointer-events: none;
   background:
     radial-gradient(ellipse 90% 42% at 50% 118%,
-      rgba(201, 168, 76, 0.16) 0%,
-      rgba(201, 168, 76, 0.05) 40%,
+      rgba(201, 168, 76, 0.14) 0%,
+      rgba(201, 168, 76, 0.045) 40%,
       transparent 72%),
-    linear-gradient(180deg, #000000 0%, #030303 60%, #050505 100%);
+    linear-gradient(180deg, #141414 0%, #141414 60%, #101010 100%);
 }
 
 #noise-layer {
@@ -4303,4 +4304,289 @@ input[type="range"]:active::-moz-range-thumb {
   * {
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ============================================================
+   ADVISOR v16: composer-first, subtitles, history, reply actions
+   Three states now:
+     .state-hero   the big orb. Speak, or type in the composer under it.
+     .state-greet  "Use keyboard" lands here: a warm day-aware line and a
+                   centred composer, no giant orb.
+     .state-chat   the thread. Orb settles at the END of each reply.
+   ============================================================ */
+
+/* ---- top bar (history, new chat, speaker) ---- */
+#advisor-topbar {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0 6px;
+  flex: none;
+}
+
+.adv-spacer { flex: 1 1 auto; }
+
+.adv-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid rgba(201, 168, 76, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--champagne);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.adv-icon svg { width: 18px; height: 18px; }
+.adv-icon:hover { border-color: rgba(201, 168, 76, 0.6); background: rgba(255, 255, 255, 0.07); }
+
+/* ---- history drawer ---- */
+#advisor-history {
+  position: absolute;
+  z-index: 6;
+  top: 46px;
+  left: 0;
+  width: min(300px, 82vw);
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 12px;
+  border: 1px solid rgba(201, 168, 76, 0.32);
+  border-radius: 14px;
+  background: rgba(24, 24, 24, 0.97);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.66);
+}
+
+.adv-hist-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--champagne);
+}
+
+.adv-hist-item {
+  display: block;
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--porcelain);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adv-hist-item:hover { border-color: rgba(201, 168, 76, 0.45); background: rgba(255, 255, 255, 0.06); }
+
+.adv-hist-empty {
+  margin: 0;
+  font-family: var(--font-accent);
+  font-style: italic;
+  color: rgba(250, 244, 240, 0.5);
+}
+
+/* ---- composer: always present, never a mystery ---- */
+#screen-advisor #advisor-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+#screen-advisor #advisor-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--porcelain);
+  font-family: var(--font-ui);
+  font-size: 15px;   /* 15px+ stops iOS zooming the page on focus */
+}
+#screen-advisor #advisor-input::placeholder { color: rgba(250, 244, 240, 0.42); }
+#screen-advisor #advisor-input:focus {
+  outline: none;
+  border-color: rgba(201, 168, 76, 0.7);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* A labelled send control. The old bare paper plane read as decoration, so
+   nobody could tell whether their message had gone. */
+.adv-send {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  min-height: 48px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--champagne), var(--gold));
+  color: #171208;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.adv-send svg { width: 17px; height: 17px; }
+.adv-send:disabled { opacity: 0.45; cursor: default; }
+@media (max-width: 420px) {
+  .adv-send-label { display: none; }        /* icon only on narrow phones */
+  .adv-send { padding: 0 15px; }
+}
+
+/* Keyboard affordance now sits BELOW the composer. */
+#screen-advisor #btn-keyboard {
+  flex: none;
+  align-self: center;
+  margin-top: 10px;
+  background: none;
+  border: none;
+  color: var(--champagne);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+/* ---- hero state: composer under the orb, keyboard under that ---- */
+#screen-advisor.state-hero #advisor-input-row,
+#screen-advisor.state-hero #btn-keyboard {
+  display: flex;
+}
+#screen-advisor.state-hero #advisor-thread,
+#screen-advisor.state-hero #advisor-chips,
+#screen-advisor.state-hero #btn-advise {
+  display: none;
+}
+
+/* Subtitles under the orb: the live transcript while you speak, and the reply
+   as it is spoken back. Scrolls if the answer runs long. */
+#voice-live {
+  max-width: 620px;
+  max-height: 26vh;
+  overflow-y: auto;
+  margin: 14px auto 0;
+  padding: 0 4px;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--porcelain);
+}
+
+/* ---- greet state: the warm, composer-first page ---- */
+#screen-advisor.state-greet {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--bottom-pad) + env(safe-area-inset-bottom));
+}
+#screen-advisor.state-greet #advisor-orb {
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 22px;
+}
+#screen-advisor.state-greet #advisor-title {
+  display: block;
+  margin: 0 0 26px;
+  font-family: var(--font-display);
+  font-size: clamp(26px, 6vw, 40px);
+  text-align: center;
+  color: var(--porcelain);
+}
+#screen-advisor.state-greet #advisor-thread,
+#screen-advisor.state-greet #advisor-chips,
+#screen-advisor.state-greet #btn-advise,
+#screen-advisor.state-greet #voice-live {
+  display: none;
+}
+#screen-advisor.state-greet #advisor-hero {
+  flex: none;
+  display: block;
+  min-height: 0;
+  max-height: none;
+  padding: 0;
+}
+
+/* ---- chat state: the orb settles at the END of a reply ---- */
+#screen-advisor.state-chat #advisor-hero { display: none; }
+#screen-advisor.state-chat #voice-live {
+  flex: none;
+  max-height: 18vh;
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+/* Reply action row: settled orb plus copy, listen, retry. */
+.msg-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(201, 168, 76, 0.16);
+}
+
+.msg-orb {
+  width: 20px;
+  height: 20px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 38% 34%, #FFF7E2 0%, var(--champagne) 34%, var(--gold) 66%, #6E5320 100%);
+  box-shadow: 0 0 12px rgba(201, 168, 76, 0.55);
+}
+
+.msg-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(232, 213, 160, 0.72);
+  cursor: pointer;
+  transition: color 150ms ease, background 150ms ease;
+}
+.msg-act svg { width: 16px; height: 16px; }
+.msg-act:hover { color: var(--champagne); background: rgba(255, 255, 255, 0.07); }
+.msg-act.ok { color: #7FD1A6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .adv-icon, .msg-act { transition: none; }
 }

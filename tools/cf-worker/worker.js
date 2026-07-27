@@ -83,12 +83,15 @@ export default {
       });
     }
 
+    // NO thinkingConfig. 'gemini-flash-latest' now resolves to a model that
+    // REJECTS thinkingBudget 0 with 400 INVALID_ARGUMENT. Sending it broke every
+    // request through this proxy. The cap is generous because thought tokens are
+    // billed against maxOutputTokens on a thinking model.
     const upstreamBody = {
       contents: [{ role: 'user', parts }],
       generationConfig: {
         temperature: 0.6,
-        maxOutputTokens: Math.min(900, body?.maxOutputTokens || 900),
-        thinkingConfig: { thinkingBudget: 0 },
+        maxOutputTokens: Math.min(2048, body?.maxOutputTokens || 2048),
       },
     };
 

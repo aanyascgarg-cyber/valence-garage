@@ -1498,7 +1498,10 @@
 
   window.App = {
     getConfig: getConfig,
-    applyMods: applyMods
+    applyMods: applyMods,
+    // Exposed so other panels can hand the owner off between tabs (the Clinic's
+    // "use the Advisor" button, for one).
+    showTab: showTab
   };
 
   // ---- boot ------------------------------------------------------------

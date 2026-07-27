@@ -1111,9 +1111,15 @@
           : 'Built-in AI offline · knowledge-base mode · full text still works');
       s.className = 'cl-ai-status ' + st;
     }
-    // The AI is built in, so there is no key field to wire any more. The status
-    // line still reports which engine is answering, so reflect it on open.
-    reflectAiStatus();
+    // The AI is built in, so there is no key field and no engine status to
+    // explain. The card simply offers a way through to the Advisor.
+    on('cl-open-advisor', function () {
+      try {
+        if (window.App && typeof window.App.showTab === 'function') {
+          window.App.showTab('advisor');
+        }
+      } catch (e) { /* navigation is best effort */ }
+    });
 
     // --- PadCheck ---
     on('cl-pc-rec', function () {

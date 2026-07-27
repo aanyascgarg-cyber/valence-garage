@@ -295,6 +295,10 @@
 
   // Build an advisor bubble. lines is an array of strings (each its own row).
   // If deltas is a non empty object, append an Apply button wired to it.
+  // While true, appendAdvisor also records the reply into ai.history. Set only
+  // around a rule-engine turn: replaying a saved conversation must NOT re-record.
+  var recordingTurn = false;
+
   function appendAdvisor(intro, lines, deltas) {
     var t = thread();
     if (!t) return null;
@@ -331,6 +335,14 @@
     }
 
     t.appendChild(el);
+    if (recordingTurn) {
+      ai.history.push({ role: 'assistant', content: el.textContent.trim() });
+      trimHistory();
+    }
+    // The closing row (settled orb, copy, listen, retry) belongs on EVERY
+    // advisor reply, not just AI-generated ones, so the controls never vanish
+    // when the rule engine answers.
+    try { attachActions(el, el.textContent.trim()); } catch (e) { }
     scrollThread();
     return el;
   }
@@ -815,6 +827,11 @@
 
   var SYSTEM_PROMPT = [
     'You are the Valence Garage build advisor, the concierge for a hypercar configurator.',
+    'GREETINGS AND SMALL TALK: when the owner greets you or makes small talk, answer like a person.',
+    'Greet them back warmly in one or two sentences, ask how they are or how you can help, and only',
+    'THEN mention the machine currently on their stage in one short line. Do not open a greeting with',
+    'a technical lecture, and do not dump numbers unless they asked for advice. Small talk is welcome:',
+    'answer it briefly and naturally, then offer to help with the build.',
     'Your voice is precise, calm, and slightly sardonic, but never rude.',
     'When the user greets you, greet them back briefly in one line, then invite a question.',
     'Always answer the exact question the user asked before offering anything extra.',
@@ -929,6 +946,100 @@
     return { wrap: el, textNode: p };
   }
 
+  // ---- per-reply actions (the row under a finished answer) ---------------
+  //
+  // The orb settles at the end of the turn, with copy, listen again, and retry
+  // beside it, the way a modern assistant closes a reply.
+  var ICONS = {
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8" stroke-linecap="round"/>',
+    speak: '<path d="M4 9.5v5h3.5l4.5 3.5v-12L7.5 9.5H4z" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 9a4 4 0 0 1 0 6" stroke-linecap="round"/>',
+    retry: '<path d="M20 11a8 8 0 1 0-2.3 5.7" stroke-linecap="round"/><path d="M20 5v6h-6" stroke-linecap="round" stroke-linejoin="round"/>'
+  };
+
+  function actionBtn(kind, label, onClick) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'msg-act';
+    b.setAttribute('aria-label', label);
+    b.title = label;
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="1.7" aria-hidden="true">' + ICONS[kind] + '</svg>';
+    b.addEventListener('click', onClick);
+    return b;
+  }
+
+  // Attach the closing row to a finished advisor bubble. Guarded throughout:
+  // a missing clipboard or speech engine must never break the thread.
+  function attachActions(wrapEl, text) {
+    if (!wrapEl || wrapEl.querySelector('.msg-actions')) return;
+    var row = document.createElement('div');
+    row.className = 'msg-actions';
+
+    // The settled orb, marking the end of the turn.
+    var mark = document.createElement('span');
+    mark.className = 'msg-orb';
+    mark.setAttribute('aria-hidden', 'true');
+    row.appendChild(mark);
+
+    row.appendChild(actionBtn('copy', 'Copy reply', function (ev) {
+      var btn = ev.currentTarget;
+      function flash() { btn.classList.add('ok'); window.setTimeout(function () { btn.classList.remove('ok'); }, 1200); }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(flash, function () {});
+          return;
+        }
+      } catch (e) { /* fall through */ }
+      // Older browsers: a hidden textarea plus execCommand.
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        flash();
+      } catch (e2) { /* copying is a convenience */ }
+    }));
+
+    row.appendChild(actionBtn('speak', 'Listen to this reply', function () {
+      var was = voiceOn;
+      voiceOn = true;          // an explicit tap always speaks
+      speak(text);
+      voiceOn = was;
+    }));
+
+    row.appendChild(actionBtn('retry', 'Ask again', function () {
+      var last = '';
+      for (var i = ai.history.length - 1; i >= 0; i--) {
+        if (ai.history[i].role === 'user') { last = ai.history[i].content; break; }
+      }
+      if (!last || ai.generating) return;
+      // Drop the reply we are replacing AND its user turn, because aiChat
+      // pushes the question again. Without this the transcript doubles up.
+      if (ai.history.length && ai.history[ai.history.length - 1].role === 'assistant') {
+        ai.history.pop();
+      }
+      if (ai.history.length && ai.history[ai.history.length - 1].role === 'user') {
+        ai.history.pop();
+      }
+      if (wrapEl.parentNode) wrapEl.parentNode.removeChild(wrapEl);
+      spokenTurn = false;
+      if (refreshMode() === 'ai') {
+        setGenerating(true);
+        aiChat(last);
+      } else {
+        routeFallback(last);
+      }
+    }));
+
+    wrapEl.appendChild(row);
+    scrollThread();
+  }
+
   // Send typed text through the AI engine, streaming the reply. Fully wrapped:
   // any failure renders a graceful fallback answer instead.
   function aiChat(text) {
@@ -945,6 +1056,9 @@
       token: function (chunk) {
         if (settled || !holder || !holder.textNode) return;
         holder.textNode.textContent += chunk;
+        // Subtitles: while answering a spoken question, mirror the reply under
+        // the orb so you can read along instead of staring at a blank screen.
+        if (spokenTurn) showVoiceLive(holder.textNode.textContent);
         scrollThread();
       },
       done: function (full) {
@@ -956,7 +1070,10 @@
         lastReplyText = full;
         // Voice replies to voice questions; the speaker toggle covers the rest.
         speak(full);
+        if (spokenTurn) showVoiceLive(full);
         try { attachApplyIfParsed(holder.wrap, full); } catch (e) { /* parsing never breaks chat */ }
+        try { attachActions(holder.wrap, full); } catch (e) { /* actions are a convenience */ }
+        saveSession();
         scrollThread();
         setGenerating(false);
       },
@@ -1106,10 +1223,14 @@
     // within the 2 second guarantee. Guard the button through the render so a
     // rapid double press cannot double fire.
     setGenerating(true);
+    ai.history.push({ role: 'user', content: text });
+    recordingTurn = true;
     try {
       routeFallback(text);
     } finally {
+      recordingTurn = false;
       setGenerating(false);
+      saveSession();
     }
   }
 
@@ -1214,11 +1335,151 @@
     chatStarted = true;
     var s = advisorScreen();
     if (s && s.classList) {
-      s.classList.remove('state-hero');
+      s.classList.remove('state-hero', 'state-greet');
       s.classList.add('state-chat');
     }
     // Legacy hero compaction stays for any shell that still uses it.
     compactHero();
+  }
+
+  // ---- greeting state (the composer-first page) -------------------------
+  //
+  // Tapping "Use keyboard" lands here rather than dropping straight into an
+  // empty thread: a warm day-aware line and a centred composer, the way a
+  // modern assistant opens. Sending from here moves to the chat state.
+  var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday'];
+
+  function dayGreeting() {
+    var d = new Date();
+    var hour = d.getHours();
+    var day = DAYS[d.getDay()];
+    if (hour < 5) return 'Late night, ' + day;
+    if (hour < 12) return 'Good morning, this fine ' + day;
+    if (hour < 17) return 'Happy ' + day;
+    return 'Good evening, this ' + day;
+  }
+
+  function setGreetState() {
+    var s = advisorScreen();
+    if (s && s.classList) {
+      s.classList.remove('state-hero', 'state-chat');
+      s.classList.add('state-greet');
+    }
+    var t = byId('advisor-title');
+    if (t) t.textContent = dayGreeting();
+    revealInput(true);
+  }
+
+  // ---- conversation history --------------------------------------------
+  //
+  // Sessions live in localStorage so the history drawer survives reloads.
+  // Each entry is { id, title, at, history }. The title is the first thing the
+  // owner said, trimmed, which is how every assistant labels a thread.
+  var HIST_KEY = 'vg-advisor-sessions-v1';
+  var HIST_MAX = 20;
+  var sessionId = null;
+
+  function loadSessions() {
+    try {
+      var raw = localStorage.getItem(HIST_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Object.prototype.toString.call(arr) === '[object Array]' ? arr : [];
+    } catch (e) { return []; }
+  }
+
+  function saveSession() {
+    try {
+      if (!ai.history.length) return;
+      var all = loadSessions();
+      if (!sessionId) sessionId = 's' + Date.now();
+      var first = '';
+      for (var i = 0; i < ai.history.length; i++) {
+        if (ai.history[i].role === 'user') { first = ai.history[i].content; break; }
+      }
+      var title = (first || 'Conversation').slice(0, 46);
+      var entry = { id: sessionId, title: title, at: Date.now(), history: ai.history.slice(-24) };
+      var replaced = false;
+      for (var j = 0; j < all.length; j++) {
+        if (all[j].id === sessionId) { all[j] = entry; replaced = true; break; }
+      }
+      if (!replaced) all.unshift(entry);
+      all.sort(function (a, b) { return (b.at || 0) - (a.at || 0); });
+      localStorage.setItem(HIST_KEY, JSON.stringify(all.slice(0, HIST_MAX)));
+    } catch (e) { /* history is a convenience, never break the chat */ }
+  }
+
+  function newConversation() {
+    saveSession();
+    sessionId = null;
+    ai.history = [];
+    chatStarted = false;
+    var t = thread();
+    if (t) t.innerHTML = '';
+    clearVoiceLive();
+    closeHistory();
+    setHeroState();
+    var title = byId('advisor-title');
+    if (title) title.textContent = 'What can I do for you today?';
+  }
+
+  function openConversation(id) {
+    var all = loadSessions();
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].id !== id) continue;
+      sessionId = id;
+      ai.history = (all[i].history || []).slice();
+      var t = thread();
+      if (t) t.innerHTML = '';
+      for (var j = 0; j < ai.history.length; j++) {
+        var m = ai.history[j];
+        if (m.role === 'user') appendUser(m.content);
+        else appendAdvisor(m.content, null, null);
+      }
+      closeHistory();
+      setChatState();
+      scrollThread();
+      return;
+    }
+  }
+
+  function renderHistory() {
+    var list = byId('adv-hist-list');
+    if (!list) return;
+    list.innerHTML = '';
+    var all = loadSessions();
+    if (!all.length) {
+      var empty = document.createElement('p');
+      empty.className = 'adv-hist-empty';
+      empty.textContent = 'No conversations yet.';
+      list.appendChild(empty);
+      return;
+    }
+    for (var i = 0; i < all.length; i++) {
+      (function (entry) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'adv-hist-item';
+        b.textContent = entry.title;
+        b.addEventListener('click', function () { openConversation(entry.id); });
+        list.appendChild(b);
+      })(all[i]);
+    }
+  }
+
+  function openHistory() {
+    renderHistory();
+    var d = byId('advisor-history');
+    if (d) d.hidden = false;
+    var btn = byId('btn-history');
+    if (btn) btn.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeHistory() {
+    var d = byId('advisor-history');
+    if (d) d.hidden = true;
+    var btn = byId('btn-history');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
   }
 
   // The live-transcript / notice line under the orb (Agent S's #voice-live).
@@ -1387,10 +1648,14 @@
     }
 
     setGenerating(true);
+    ai.history.push({ role: 'user', content: clean });
+    recordingTurn = true;
     try {
       routeFallback(clean);
     } finally {
+      recordingTurn = false;
       setGenerating(false);
+      saveSession();
     }
   }
 
@@ -1417,10 +1682,27 @@
     var kbd = byId('btn-keyboard');
     if (kbd) {
       kbd.addEventListener('click', function () {
-        // Reveal + focus the input row; stay in hero until a message is sent.
-        revealInput(true);
+        // Stop listening first: tapping the keyboard while the mic is open
+        // should hand control to typing, not fight it.
+        if (recognizing) { try { stopListen(); } catch (e) {} }
+        // Mid-conversation, just focus the composer. Otherwise open the warm
+        // greeting page (a fresh conversation, composer first).
+        if (chatStarted) revealInput(true);
+        else setGreetState();
       });
     }
+
+    var hist = byId('btn-history');
+    if (hist) hist.addEventListener('click', function () {
+      var d = byId('advisor-history');
+      if (d && d.hidden) openHistory(); else closeHistory();
+    });
+
+    var histClose = byId('btn-history-close');
+    if (histClose) histClose.addEventListener('click', closeHistory);
+
+    var fresh = byId('btn-new-chat');
+    if (fresh) fresh.addEventListener('click', newConversation);
 
     // A focus request on the input (dashboard quick-entry, or programmatic)
     // reveals the input row in whatever state we are in.

@@ -70,12 +70,15 @@
         encodeURIComponent(key);
       payload = {
         contents: [{ role: 'user', parts: parts }],
-        // Flash-latest is a thinking model: zero the thinking budget so
-        // tokens go to the answer, and give the answer real room.
+        // NO thinkingConfig. 'gemini-flash-latest' now resolves to a model that
+        // REJECTS thinkingBudget 0 with 400 INVALID_ARGUMENT (it insists on
+        // thinking). Zeroing it used to be required to stop the whole budget
+        // going to thought tokens; the current model returns answer text
+        // normally, so we simply leave the budget alone and give the reply
+        // generous room, since thought tokens are billed against this cap.
         generationConfig: {
           temperature: 0.6,
-          maxOutputTokens: 900,
-          thinkingConfig: { thinkingBudget: 0 }
+          maxOutputTokens: 2048
         }
       };
     } else {
@@ -343,10 +346,9 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: 'Reply with exactly: VALENCE OK' }] }],
-        generationConfig: {
-          maxOutputTokens: 30,
-          thinkingConfig: { thinkingBudget: 0 }
-        }
+        // Room for thought tokens too (see geminiStream): a tight cap here made
+        // the check fail on a thinking model even when the key was good.
+        generationConfig: { maxOutputTokens: 512 }
       })
     }).then(function (r) {
       if (r.ok) cb(null, 'Key verified: Gemini responding.');

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=30">
+  <link rel="stylesheet" href="style.css?v=31">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -317,8 +317,21 @@
 
     <!-- ============================ ADVISOR ============================ -->
     <section id="screen-advisor" class="screen state-hero" aria-label="Advisor">
-      <header id="advisor-hero" class="advisor-head">
-        <!-- Voice/TTS toggle (advisor.js speaks replies aloud). Gold voice badge. -->
+      <!-- Persistent top bar: chat history, a fresh conversation, and the
+           speaker toggle. Present in every advisor state. -->
+      <div id="advisor-topbar">
+        <button id="btn-history" class="adv-icon" type="button" aria-label="Chat history" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M4 6h16M4 12h16M4 18h11" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <button id="btn-new-chat" class="adv-icon" type="button" aria-label="New conversation">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <span class="adv-spacer"></span>
+        <!-- Voice/TTS toggle (advisor.js speaks replies aloud). -->
         <button id="btn-voice" class="voice gbadge-btn" type="button" aria-pressed="false" aria-label="Toggle voice">
           <span class="gbadge sm" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -327,7 +340,22 @@
             </svg>
           </span>
         </button>
+      </div>
 
+      <!-- Slide-over history drawer. advisor.js fills it from saved sessions. -->
+      <div id="advisor-history" hidden>
+        <div class="adv-hist-head">
+          <span>Conversations</span>
+          <button id="btn-history-close" class="adv-icon" type="button" aria-label="Close history">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+              <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <div id="adv-hist-list"><!-- advisor.js injects saved conversations --></div>
+      </div>
+
+      <header id="advisor-hero" class="advisor-head">
         <h2 id="advisor-title">What can I do for you today?</h2>
 
         <!-- Huge tappable orb. advisor.js toggles speech recognition on tap. -->
@@ -337,21 +365,12 @@
           <canvas id="orb-canvas" aria-hidden="true"></canvas>
         </div>
 
-        <!-- Live transcript / calm notice line (Cormorant italic champagne). -->
+        <!-- SUBTITLES. Carries the live voice transcript while you speak AND the
+             advisor's reply as it is spoken, so you can read along on the globe
+             page instead of being thrown to a blank screen. -->
         <div id="voice-live" aria-live="polite" hidden></div>
 
-        <div id="advisor-status" hidden>Warming up the advisor</div>
-
-        <!-- Keyboard affordance, bottom-center in hero. Reveals the input row. -->
-        <button id="btn-keyboard" type="button" aria-label="Use keyboard">
-          <span class="gbadge sm" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <rect x="3" y="7" width="18" height="11" rx="2"/>
-              <path d="M7 11h0M11 11h0M15 11h0M7 14.5h10" stroke-linecap="round"/>
-            </svg>
-          </span>
-          <span class="btn-keyboard-label">Use keyboard</span>
-        </button>
+        <div id="advisor-status" hidden></div>
       </header>
 
       <div id="advisor-chips">
@@ -375,24 +394,34 @@
         </div>
       </div>
 
-      <div id="advisor-thread" aria-live="polite">
-        <div class="msg advisor">
-          I read your build, run the numbers through rules and physics, and tell you the truth. No language model behind me, so I cannot flatter you, only advise you.
-        </div>
-      </div>
+      <!-- advisor.js seeds the opening line (day aware) so it is never stale. -->
+      <div id="advisor-thread" aria-live="polite"></div>
 
       <button id="btn-advise" class="btn-primary full" type="button">Consult the Advisor</button>
 
+      <!-- Composer. Lives on the globe page AND in chat, so you can type from
+           the start, or edit what the microphone heard before sending. -->
       <div id="advisor-input-row">
-        <input id="advisor-input" type="text" placeholder="What can I do for you today?" spellcheck="false" autocomplete="off" aria-label="Message the advisor">
-        <button id="btn-send" type="button" aria-label="Send message">
-          <span class="gbadge" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-              <path d="M4 12l16-7-7 16-2.5-6.5L4 12z" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
+        <input id="advisor-input" type="text" placeholder="Ask the Advisor anything" spellcheck="false" autocomplete="off" aria-label="Message the advisor">
+        <button id="btn-send" class="adv-send" type="button" aria-label="Send message">
+          <span class="adv-send-label">Send</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+            <path d="M4 12l16-7-7 16-2.5-6.5L4 12z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
       </div>
+
+      <!-- Kept, and moved BELOW the composer. Always reachable, including while
+           voice is listening, and it opens the greeting composer. -->
+      <button id="btn-keyboard" type="button" aria-label="Use keyboard">
+        <span class="gbadge sm" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="3" y="7" width="18" height="11" rx="2"/>
+            <path d="M7 11h0M11 11h0M15 11h0M7 14.5h10" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="btn-keyboard-label">Use keyboard</span>
+      </button>
     </section>
 
     <!-- ============================ LAB ============================ -->
@@ -506,10 +535,10 @@
           diagnostic knowledge (fault trees, acoustic signatures, fluid
           charts, fair-shop playbooks), and a frontier AI reasons over that
           knowledge, reads your photos, and
-          writes your diagnosis live. If the shared free allowance is ever
-          busy, it falls back to the on-device model and then the built-in
-          knowledge base, so it never stops working.</p>
-          <div id="cl-ai-status" class="cl-ai-status"></div>
+          writes your diagnosis live. Photos and prose are enabled, and if the
+          shared allowance is ever busy it falls back to the built-in knowledge
+          base, so it never stops working.</p>
+          <button id="cl-open-advisor" class="btn-secondary" type="button">Click here to use the Advisor</button>
           <div id="cl-ai-msg" class="cl-note"></div>
         </div>
       </div>
@@ -640,10 +669,20 @@
         </button>
         <div class="clinic-body" hidden>
           <p class="cl-copy">Weigh your cargo with a door slam. Loading for a
-          move, a lumber run, a packed road trip? Calibrate empty, load up,
-          slam the door once, and the app tells you how many kilograms you
-          added and how close the suspension is to its rated payload:
-          before the highway finds out for you.</p>
+          move, a lumber run, a packed road trip? Two readings, and the app
+          tells you how many kilograms you added and how close the suspension
+          is to its rated payload, before the highway finds out for you.</p>
+          <ol class="cl-steps">
+            <li>Rest the phone on a flat surface in the empty car. Tap
+            <strong>Calibrate empty</strong>, then slam one door once inside
+            the four second window it opens.</li>
+            <li>Load your cargo. <strong>Take as long as you like</strong>,
+            nothing is timing you between the two readings.</li>
+            <li>Tap <strong>Measure loaded</strong> and slam the same door
+            again inside its four second window.</li>
+          </ol>
+          <p class="cl-note">Each tap opens its own four second capture, so it
+          only listens when you ask it to. It does not detect slams on its own.</p>
           <details class="cl-about">
             <summary>About this instrument</summary>
             <p>Your car sits on springs, and any mass on springs has a
@@ -889,23 +928,23 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=49"></script>
-  <script defer src="js/motion.js?v=49"></script>
-  <script defer src="js/fog.js?v=49"></script>
-  <script defer src="js/heroscene.js?v=49"></script>
-  <script defer src="js/orb.js?v=49"></script>
-  <script defer src="js/physics.js?v=49"></script>
-  <script defer src="js/car.js?v=49"></script>
-  <script defer src="js/cars.js?v=49"></script>
-  <script defer src="js/viewer.js?v=49"></script>
-  <script defer src="js/theater.js?v=49"></script>
-  <script defer src="js/windlab.js?v=49"></script>
-  <script defer src="js/duel.js?v=49"></script>
-  <script defer src="js/knowledge.js?v=49"></script>
-  <script defer src="js/aiengine.js?v=49"></script>
-  <script defer src="js/clinic.js?v=49"></script>
-  <script defer src="js/advisor.js?v=49"></script>
-  <script defer src="js/app.js?v=49"></script>
-  <script defer src="js/intro.js?v=49"></script>
+  <script defer src="js/atmos.js?v=51"></script>
+  <script defer src="js/motion.js?v=51"></script>
+  <script defer src="js/fog.js?v=51"></script>
+  <script defer src="js/heroscene.js?v=51"></script>
+  <script defer src="js/orb.js?v=51"></script>
+  <script defer src="js/physics.js?v=51"></script>
+  <script defer src="js/car.js?v=51"></script>
+  <script defer src="js/cars.js?v=51"></script>
+  <script defer src="js/viewer.js?v=51"></script>
+  <script defer src="js/theater.js?v=51"></script>
+  <script defer src="js/windlab.js?v=51"></script>
+  <script defer src="js/duel.js?v=51"></script>
+  <script defer src="js/knowledge.js?v=51"></script>
+  <script defer src="js/aiengine.js?v=51"></script>
+  <script defer src="js/clinic.js?v=51"></script>
+  <script defer src="js/advisor.js?v=51"></script>
+  <script defer src="js/app.js?v=51"></script>
+  <script defer src="js/intro.js?v=51"></script>
 </body>
 </html>
