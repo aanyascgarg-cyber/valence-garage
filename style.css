@@ -4590,3 +4590,98 @@ input[type="range"]:active::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   .adv-icon, .msg-act { transition: none; }
 }
+
+/* ============================================================
+   ADVISOR v17 LAYOUT FIX
+   Symptoms on a phone: no visible Send control, the keyboard button
+   rendered at 845px inside an 812px viewport (off screen), and no
+   subtitles at all.
+   Causes: the hero was normal flow so its content ran off the bottom
+   past the floating tab bar; #voice-live was a CHILD of the hero, which
+   the chat state hides; and the Send label was suppressed under 420px,
+   leaving exactly the bare icon this was supposed to replace.
+   Fix: every advisor state is a full-height flex column whose composer is
+   pinned at the end, the orb area absorbs the slack, and the label stays.
+   NOTE: each of these display rules MUST carry .active, or an id+class
+   selector outranks `.screen { display: none }` and the advisor floats
+   over every other tab.
+   ============================================================ */
+
+#screen-advisor.state-hero.active,
+#screen-advisor.state-greet.active {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  padding-top: max(16px, env(safe-area-inset-top));
+  padding-bottom: calc(var(--bottom-pad) + env(safe-area-inset-bottom));
+}
+
+/* The orb block takes the slack and centres itself; everything below it is
+   fixed height, so the composer can never be pushed off the screen. */
+#screen-advisor.state-hero #advisor-hero {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0;
+  max-height: none;
+  overflow: hidden;
+}
+
+/* The orb shrinks with the room rather than overflowing it. */
+#screen-advisor.state-hero #advisor-orb {
+  flex: 0 1 auto;
+  width: min(58vw, 260px);
+  height: min(58vw, 260px);
+  max-height: 42vh;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+}
+
+#screen-advisor.state-hero #advisor-title {
+  flex: none;
+  margin: 0 0 6px;
+}
+
+/* Subtitles sit between the orb and the composer in every state. */
+#screen-advisor #voice-live {
+  flex: none;
+  order: 5;
+}
+#screen-advisor.state-hero #voice-live { max-height: 22vh; margin: 6px auto 10px; }
+#screen-advisor.state-chat #voice-live { max-height: 16vh; margin: 0 0 8px; }
+
+#screen-advisor.state-hero #advisor-input-row,
+#screen-advisor.state-greet #advisor-input-row,
+#screen-advisor.state-chat #advisor-input-row {
+  flex: none;
+  order: 6;
+}
+
+#screen-advisor #btn-keyboard {
+  flex: none;
+  order: 7;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* The label stays on phones. A bare paper plane is exactly the ambiguity
+   this control existed to remove. */
+@media (max-width: 420px) {
+  .adv-send-label { display: inline; }
+  .adv-send { padding: 0 16px; font-size: 11px; letter-spacing: 0.12em; }
+  #screen-advisor #advisor-input { font-size: 16px; }
+}
+
+/* Chips are optional furniture; they must never squeeze the conversation. */
+#screen-advisor.state-chat #advisor-chips { display: none; }
+
+/* Sending state, so it is obvious the message went. */
+.adv-send.sending { opacity: 0.6; }

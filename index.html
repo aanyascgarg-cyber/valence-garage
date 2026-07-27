@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=31">
+  <link rel="stylesheet" href="style.css?v=32">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -365,13 +365,15 @@
           <canvas id="orb-canvas" aria-hidden="true"></canvas>
         </div>
 
-        <!-- SUBTITLES. Carries the live voice transcript while you speak AND the
-             advisor's reply as it is spoken, so you can read along on the globe
-             page instead of being thrown to a blank screen. -->
-        <div id="voice-live" aria-live="polite" hidden></div>
-
         <div id="advisor-status" hidden></div>
       </header>
+
+      <!-- SUBTITLES. Deliberately a SIBLING of the hero, not a child: the chat
+           state hides the hero, and while these lived inside it the subtitles
+           were hidden along with it, which is exactly the blank screen this was
+           meant to prevent. Carries the live transcript while you speak AND the
+           reply as it is spoken. -->
+      <div id="voice-live" aria-live="polite" hidden></div>
 
       <div id="advisor-chips">
         <div class="chip-label chips-heading">Quick advice</div>
