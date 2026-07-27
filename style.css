@@ -4747,3 +4747,25 @@ input[type="range"]:active::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   .think-dots i { animation: none; opacity: 0.8; }
 }
+
+/* ============================================================
+   ADVISOR v19: THE ACTUAL BUG behind "I cannot see anything"
+   #screen-advisor::before is position:fixed with z-index:0, so it paints
+   in the POSITIONED phase, i.e. ON TOP of ordinary static children. Only
+   #advisor-hero and #advisor-topbar carried position:relative, so the orb
+   and the top icons showed while the composer, the send button, the
+   subtitles and the whole message thread were painted UNDERNEATH the
+   background and were invisible.
+   It also carries pointer-events:none, which is why elementFromPoint kept
+   reporting the composer as the topmost element: hit testing skipped the
+   overlay even though it was covering it visually. Measurements said fine,
+   the screen said empty, and the screen was right.
+   Fix: lift every direct child of the advisor above that layer.
+   ============================================================ */
+#screen-advisor > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* The hint is the last child of the hero, and the hero was clipping it. */
+#screen-advisor.state-hero #advisor-hero { overflow: visible; }
