@@ -4685,3 +4685,65 @@ input[type="range"]:active::-moz-range-thumb {
 
 /* Sending state, so it is obvious the message went. */
 .adv-send.sending { opacity: 0.6; }
+
+/* ---- v18: say what is happening at every moment ---- */
+
+/* The orb's instruction line. */
+#orb-hint {
+  flex: none;
+  /* The hero orders its children (title 1, orb 2). Without an explicit order
+     this defaulted to 0 and sorted ABOVE the title. */
+  order: 3;
+  flex: none;
+  margin-top: 12px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-align: center;
+  color: rgba(232, 213, 160, 0.72);
+}
+#screen-advisor.state-chat #orb-hint,
+#screen-advisor.state-greet #orb-hint { display: none; }
+
+/* Send is now a plain upward arrow in a gold disc: unmistakable, and it does
+   not need a word to be understood. */
+.adv-send {
+  width: 48px;
+  padding: 0;
+  border-radius: 50%;
+  justify-content: center;
+}
+.adv-send svg { width: 20px; height: 20px; }
+@media (max-width: 420px) {
+  .adv-send { width: 46px; padding: 0; }
+}
+
+/* "Thinking" placeholder, so a slow answer is never a blank screen. */
+.msg.advisor.thinking {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-style: normal;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(232, 213, 160, 0.8);
+}
+.think-dots { display: inline-flex; gap: 4px; }
+.think-dots i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold);
+  animation: think-bounce 1.05s ease-in-out infinite;
+}
+.think-dots i:nth-child(2) { animation-delay: 0.14s; }
+.think-dots i:nth-child(3) { animation-delay: 0.28s; }
+@keyframes think-bounce {
+  0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+  40%           { opacity: 1;   transform: translateY(-4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .think-dots i { animation: none; opacity: 0.8; }
+}

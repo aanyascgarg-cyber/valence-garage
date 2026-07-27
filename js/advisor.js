@@ -64,6 +64,10 @@
   // leave this false and stay silent unless the user turns the speaker on.
   var spokenTurn = false;
 
+  // Set when a turn STARTED as speech but is waiting in the composer for the
+  // owner to review it. handleSend consumes it so the answer is still spoken.
+  var pendingSpoken = false;
+
   // Last full advisor reply text, so enabling voice can speak it on demand and
   // the AI path can speak the complete answer (not streamed chunks).
   var lastReplyText = '';
@@ -302,6 +306,7 @@
   function appendAdvisor(intro, lines, deltas) {
     var t = thread();
     if (!t) return null;
+    clearThinking();
     var el = document.createElement('div');
     el.className = 'msg advisor';
 
@@ -946,6 +951,35 @@
     return { wrap: el, textNode: p };
   }
 
+  // A placeholder bubble the moment a question is sent, so the wait is never a
+  // blank screen. Gemini 3.x thinks before answering, which can take seconds.
+  function showThinking() {
+    var t = thread();
+    if (!t || t.querySelector('.msg.thinking')) return;
+    var el = document.createElement('div');
+    el.className = 'msg advisor thinking';
+    el.innerHTML = '<span class="think-dots"><i></i><i></i><i></i></span>' +
+      '<span class="think-label">Thinking</span>';
+    t.appendChild(el);
+    scrollThread();
+  }
+
+  function clearThinking() {
+    var t = thread();
+    if (!t) return;
+    var el = t.querySelector('.msg.thinking');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  // The orb needs to say what it wants. Nobody guesses "tap to speak".
+  function setOrbHint(kind) {
+    var el = byId('orb-hint');
+    if (!el) return;
+    if (kind === 'listening') el.textContent = 'Listening. Tap the orb again when you are done.';
+    else if (kind === 'thinking') el.textContent = 'Thinking';
+    else el.textContent = 'Tap the orb to speak, or type below';
+  }
+
   // ---- per-reply actions (the row under a finished answer) ---------------
   //
   // The orb settles at the end of the turn, with copy, listen again, and retry
@@ -1055,6 +1089,7 @@
     window.AIEngine.chat(system, ai.history.slice(0, -1).slice(-10), text, {
       token: function (chunk) {
         if (settled || !holder || !holder.textNode) return;
+        clearThinking();   // first real text: the wait is over
         holder.textNode.textContent += chunk;
         // Subtitles: while answering a spoken question, mirror the reply under
         // the orb so you can read along instead of staring at a blank screen.
@@ -1064,6 +1099,7 @@
       done: function (full) {
         if (settled) return;
         settled = true;
+        clearThinking();
         ai.history.push({ role: 'assistant', content: full });
         trimHistory();
         if (holder && holder.textNode) holder.textNode.textContent = full;
@@ -1080,6 +1116,7 @@
       error: function () {
         if (settled) return;
         settled = true;
+        clearThinking();
         finishWithFallback(holder, text);
         setGenerating(false);
       }
@@ -1207,8 +1244,11 @@
     appendUser(text);
     setChatState();
 
-    // Typed question: answer in text. The speaker toggle can still opt in.
-    spokenTurn = false;
+    // A question dictated then reviewed still deserves a spoken answer.
+    spokenTurn = pendingSpoken;
+    pendingSpoken = false;
+    showVoiceLive('');
+    showThinking();
 
     // AI path: stream the reply. Send stays disabled until the stream settles,
     // re-enabled in aiChat's finally. Every send is answered (stream start or a
@@ -1317,7 +1357,7 @@
   }
 
   function orbIdle() { setOrbState('idle'); }
-  function orbListening() { setOrbState('listening'); }
+  function orbListening() { setOrbState('listening'); setOrbHint('listening'); }
   function orbThinking() { setOrbState('thinking'); }
 
   // Enter the hero state (default). Idempotent.
@@ -1600,8 +1640,18 @@
       if (!chatStarted) orbIdle();
       var text = String(finalText || '').trim();
       if (text) {
-        clearVoiceLive();
-        submitMessage(text, true);   // asked by voice, answer by voice
+        // NEVER auto-send. The owner asked to see and correct what the
+        // microphone heard first, so the transcript lands in the composer and
+        // waits for Send. pendingSpoken remembers that this turn began as
+        // speech, so the reply is still spoken back.
+        pendingSpoken = true;
+        revealInput(true);
+        var input = byId('advisor-input');
+        if (input) {
+          input.value = text;
+          try { input.setSelectionRange(text.length, text.length); } catch (e) {}
+        }
+        showVoiceLive('Heard: "' + text + '". Edit it if you like, then press Send.');
       }
       // No final text (user tapped to cancel, or silence): leave any notice
       // as-is; if #voice-live only held interim text, clear it.

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=32">
+  <link rel="stylesheet" href="style.css?v=34">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -365,6 +365,9 @@
           <canvas id="orb-canvas" aria-hidden="true"></canvas>
         </div>
 
+        <!-- Says what the orb wants. Nobody guesses "tap to speak". -->
+        <div id="orb-hint">Tap the orb to speak, or type below</div>
+
         <div id="advisor-status" hidden></div>
       </header>
 
@@ -406,9 +409,8 @@
       <div id="advisor-input-row">
         <input id="advisor-input" type="text" placeholder="Ask the Advisor anything" spellcheck="false" autocomplete="off" aria-label="Message the advisor">
         <button id="btn-send" class="adv-send" type="button" aria-label="Send message">
-          <span class="adv-send-label">Send</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
-            <path d="M4 12l16-7-7 16-2.5-6.5L4 12z" stroke-linecap="round" stroke-linejoin="round"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <path d="M12 19V5M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </button>
       </div>
@@ -930,23 +932,23 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=51"></script>
-  <script defer src="js/motion.js?v=51"></script>
-  <script defer src="js/fog.js?v=51"></script>
-  <script defer src="js/heroscene.js?v=51"></script>
-  <script defer src="js/orb.js?v=51"></script>
-  <script defer src="js/physics.js?v=51"></script>
-  <script defer src="js/car.js?v=51"></script>
-  <script defer src="js/cars.js?v=51"></script>
-  <script defer src="js/viewer.js?v=51"></script>
-  <script defer src="js/theater.js?v=51"></script>
-  <script defer src="js/windlab.js?v=51"></script>
-  <script defer src="js/duel.js?v=51"></script>
-  <script defer src="js/knowledge.js?v=51"></script>
-  <script defer src="js/aiengine.js?v=51"></script>
-  <script defer src="js/clinic.js?v=51"></script>
-  <script defer src="js/advisor.js?v=51"></script>
-  <script defer src="js/app.js?v=51"></script>
-  <script defer src="js/intro.js?v=51"></script>
+  <script defer src="js/atmos.js?v=53"></script>
+  <script defer src="js/motion.js?v=53"></script>
+  <script defer src="js/fog.js?v=53"></script>
+  <script defer src="js/heroscene.js?v=53"></script>
+  <script defer src="js/orb.js?v=53"></script>
+  <script defer src="js/physics.js?v=53"></script>
+  <script defer src="js/car.js?v=53"></script>
+  <script defer src="js/cars.js?v=53"></script>
+  <script defer src="js/viewer.js?v=53"></script>
+  <script defer src="js/theater.js?v=53"></script>
+  <script defer src="js/windlab.js?v=53"></script>
+  <script defer src="js/duel.js?v=53"></script>
+  <script defer src="js/knowledge.js?v=53"></script>
+  <script defer src="js/aiengine.js?v=53"></script>
+  <script defer src="js/clinic.js?v=53"></script>
+  <script defer src="js/advisor.js?v=53"></script>
+  <script defer src="js/app.js?v=53"></script>
+  <script defer src="js/intro.js?v=53"></script>
 </body>
 </html>
