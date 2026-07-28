@@ -773,6 +773,16 @@
 
   // Speaks when the speaker toggle is on, OR when this turn arrived by voice:
   // asking out loud should always be answered out loud.
+  // Shows on the speaker button that a reply is being read aloud, so the
+  // control that stops it is obvious.
+  function markSpeaking(on) {
+    var b = byId('btn-voice');
+    if (!b) return;
+    if (on) b.classList.add('speaking');
+    else b.classList.remove('speaking');
+    b.setAttribute('aria-label', on ? 'Stop speaking' : 'Toggle voice');
+  }
+
   function speak(text) {
     if (!voiceOn && !spokenTurn) return;
     if (typeof window.speechSynthesis === 'undefined') return;
@@ -784,6 +794,9 @@
       u.pitch = 1.0;
       var v = pickVoice();
       if (v) { u.voice = v; if (v.lang) u.lang = v.lang; }
+      u.onstart = function () { markSpeaking(true); };
+      u.onend = function () { markSpeaking(false); };
+      u.onerror = function () { markSpeaking(false); };
       window.speechSynthesis.speak(u);
     } catch (e) {
       // never throw on speech
@@ -791,6 +804,13 @@
   }
 
   function toggleVoice() {
+    // If it is mid-sentence, the first press is a STOP, not a restart. There
+    // was previously no way to interrupt a long reply.
+    if (typeof window.speechSynthesis !== 'undefined' && window.speechSynthesis.speaking) {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+      markSpeaking(false);
+      return;
+    }
     voiceOn = !voiceOn;
     var btn = byId('btn-voice');
     if (btn) btn.setAttribute('aria-pressed', voiceOn ? 'true' : 'false');
@@ -1106,6 +1126,8 @@
         lastReplyText = full;
         // Voice replies to voice questions; the speaker toggle covers the rest.
         speak(full);
+        // A spoken turn shows the answer as subtitles under the orb and stays
+        // on that page. The thread still holds the full record for later.
         if (spokenTurn) showVoiceLive(full);
         try { attachApplyIfParsed(holder.wrap, full); } catch (e) { /* parsing never breaks chat */ }
         try { attachActions(holder.wrap, full); } catch (e) { /* actions are a convenience */ }
@@ -1241,14 +1263,22 @@
     if (!text) return;
     input.value = '';
 
-    appendUser(text);
-    setChatState();
-
-    // A question dictated then reviewed still deserves a spoken answer.
+    // A question dictated then reviewed still deserves a spoken answer, and it
+    // stays on the orb page: voice is a voice experience, so the reply arrives
+    // as speech with subtitles under the orb rather than throwing you into a
+    // transcript. Typing is what opens the chat thread.
     spokenTurn = pendingSpoken;
     pendingSpoken = false;
-    showVoiceLive('');
-    showThinking();
+
+    appendUser(text);
+    if (spokenTurn) {
+      setSubsMode(true);
+      showVoiceLive('Thinking...');
+    } else {
+      setChatState();
+      showVoiceLive('');
+      showThinking();
+    }
 
     // AI path: stream the reply. Send stays disabled until the stream settles,
     // re-enabled in aiChat's finally. Every send is answered (stream start or a
@@ -1357,7 +1387,12 @@
   }
 
   function orbIdle() { setOrbState('idle'); }
-  function orbListening() { setOrbState('listening'); setOrbHint('listening'); }
+  function orbListening() {
+    setOrbState('listening');
+    setOrbHint('listening');
+    setSubsMode(true);
+    showVoiceLive('Listening...');
+  }
   function orbThinking() { setOrbState('thinking'); }
 
   // Enter the hero state (default). Idempotent.
@@ -1409,6 +1444,14 @@
     var t = byId('advisor-title');
     if (t) t.textContent = dayGreeting();
     revealInput(true);
+  }
+
+  // Give the subtitles room on the orb page by lifting and shrinking the orb.
+  function setSubsMode(on) {
+    var s = advisorScreen();
+    if (!s || !s.classList) return;
+    if (on) s.classList.add('has-subs');
+    else s.classList.remove('has-subs');
   }
 
   // ---- conversation history --------------------------------------------
@@ -1737,6 +1780,8 @@
         if (recognizing) { try { stopListen(); } catch (e) {} }
         // Mid-conversation, just focus the composer. Otherwise open the warm
         // greeting page (a fresh conversation, composer first).
+        setSubsMode(false);
+        clearVoiceLive();
         if (chatStarted) revealInput(true);
         else setGreetState();
       });

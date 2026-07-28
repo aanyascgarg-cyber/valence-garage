@@ -4502,7 +4502,7 @@ input[type="range"]:active::-moz-range-thumb {
 }
 
 /* ---- greet state: the warm, composer-first page ---- */
-#screen-advisor.state-greet {
+#screen-advisor.state-greet.active {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -4874,3 +4874,44 @@ input[type="range"]:active::-moz-range-thumb {
    messages at the top with a large void beneath them, which is how every chat
    interface behaves. Still scrolls normally once the thread grows. */
 #screen-advisor.state-chat #advisor-thread { justify-content: flex-end; }
+
+/* ============================================================
+   v21: make the tab leak IMPOSSIBLE, not merely fixed again
+   Three times now an advisor state rule has set `display` with an
+   id+class selector and no `.active`, which outranks the plain
+   `.screen { display: none }` and leaves the advisor (and its fixed
+   background) painted over Build, Clinic and every other tab. Patching
+   them one at a time has not held, so this closes the whole class of
+   bug: an inactive screen is hidden no matter what any other rule says.
+   ============================================================ */
+.screen:not(.active) {
+  display: none !important;
+}
+
+/* ---- Subtitles belong to the ORB page only ----
+   In chat you can already read the reply in the thread, so showing it in
+   the subtitle line as well printed everything twice. */
+#screen-advisor.state-chat #voice-live,
+#screen-advisor.state-greet #voice-live {
+  display: none !important;
+}
+
+/* Speaking on the orb page: give the subtitles real room by lifting and
+   shrinking the orb rather than letting the two collide. */
+#screen-advisor.state-hero.has-subs #advisor-orb {
+  width: min(38vw, 190px);
+  height: min(38vw, 190px);
+  max-height: 26vh;
+}
+#screen-advisor.state-hero.has-subs #advisor-title { display: none; }
+#screen-advisor.state-hero.has-subs #advisor-hero { justify-content: flex-start; padding-top: 4px; }
+#screen-advisor.state-hero.has-subs #voice-live {
+  max-height: 34vh;
+  margin-top: 10px;
+  font-size: 16px;
+}
+
+/* The speaker button reads as engaged while it is talking. */
+#btn-voice.speaking .gbadge {
+  box-shadow: 0 0 0 2px rgba(201, 168, 76, 0.55), 0 0 18px rgba(201, 168, 76, 0.5);
+}
