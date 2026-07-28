@@ -4951,3 +4951,48 @@ input[type="range"]:active::-moz-range-thumb {
 /* SUBTITLES. They were crowding the hint line directly above them. */
 #screen-advisor.state-hero.has-subs #voice-live { margin-top: 34px; }
 #screen-advisor.state-hero.has-subs #orb-hint { margin-bottom: 6px; }
+
+/* ---- Spec card export ---- */
+.sc-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  margin-top: 4px;
+  padding: 0 20px;
+  border: 1px solid rgba(201, 168, 76, 0.55);
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.12);
+  color: var(--champagne);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.sc-download:hover { background: rgba(201, 168, 76, 0.22); border-color: var(--gold); }
+.sc-download:disabled { opacity: 0.7; cursor: default; }
+
+/* The same offer on each saved build in the Garage. */
+.garage-card-dl {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 10px;
+  background: rgba(201, 168, 76, 0.08);
+  color: var(--champagne);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.garage-card-dl:hover { background: rgba(201, 168, 76, 0.18); border-color: var(--gold); }
+.garage-card-dl:disabled { opacity: 0.7; cursor: default; }

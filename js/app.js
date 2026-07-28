@@ -694,6 +694,15 @@
     arch.textContent = carName(cfg.carId);
     body.appendChild(arch);
 
+    var dl = document.createElement('button');
+    dl.type = 'button';
+    dl.className = 'garage-card-dl';
+    dl.textContent = 'Download your spec card for the ' + carName(cfg.carId);
+    dl.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      downloadSpecCard(cfg, dl);
+    });
+
     var perf = safeCompute(cfg);
     var stats = document.createElement('div');
     stats.className = 'garage-card-stats';
@@ -703,6 +712,7 @@
     stats.textContent = fmtInt(cfg.powerHp) + ' hp  .  ' +
       fmt1(perf.zeroTo60) + ' s  .  ' + topDisp;
     body.appendChild(stats);
+    body.appendChild(dl);
 
     card.appendChild(body);
 
@@ -1363,6 +1373,47 @@
 
   // ---- spec card -------------------------------------------------------
 
+  // Assemble everything js/speccard.js needs to paint a shareable PNG. Kept
+  // here because only app.js knows the units, the car table and the snapshot
+  // cache. Returns null when the build cannot be read.
+  function specCardPayload(cfg) {
+    if (!cfg) return null;
+    var p = safeCompute(cfg);
+    var entry = carById(cfg.carId);
+    var imperial = units === 'imperial';
+    return {
+      payload: {
+        name: cfg.name,
+        carLabel: carName(cfg.carId) + (entry && entry.sub ? '  .  ' + entry.sub : ''),
+        setupLine: cfg.drivetrain + '  .  ' + TIRE_LABELS[cfg.tireIndex] +
+          ' tires  .  ' + WING_LABELS[cfg.wingLevel] + ' wing',
+        perf: {
+          power: fmtInt(cfg.powerHp),
+          zeroTo60: fmt1(p.zeroTo60),
+          topSpeed: imperial ? fmtInt(p.topSpeedKmh * 0.621371) : fmtInt(p.topSpeedKmh),
+          topLabel: imperial ? 'Top speed mph' : 'Top speed km/h',
+          braking: imperial ? fmtInt(p.braking100 * 3.28084) : fmtInt(p.braking100),
+          brakeLabel: imperial ? 'Braking ft' : 'Braking m'
+        }
+      },
+      img: carImage(cfg.carId)
+    };
+  }
+
+  function downloadSpecCard(cfg, btn) {
+    try {
+      var pack = specCardPayload(cfg);
+      if (!pack || !window.SpecCard) return;
+      window.SpecCard.download(pack.payload, pack.img);
+      if (btn) {
+        var was = btn.textContent;
+        btn.textContent = 'Saved to your downloads';
+        btn.disabled = true;
+        setTimeout(function () { btn.textContent = was; btn.disabled = false; }, 2200);
+      }
+    } catch (e) { /* export is a bonus, never break the page */ }
+  }
+
   function openSpecCard() {
     if (!current) return;
     var p = safeCompute(current);
@@ -1413,6 +1464,14 @@
     setText('sc-setup', current.drivetrain + '  .  ' +
       TIRE_LABELS[current.tireIndex] + ' tires  .  ' +
       WING_LABELS[current.wingLevel] + ' wing');
+
+    var dlBtn = byId('sc-download');
+    if (dlBtn && !dlBtn.dataset.wired) {
+      dlBtn.dataset.wired = '1';
+      dlBtn.addEventListener('click', function () {
+        downloadSpecCard(current, dlBtn);
+      });
+    }
 
     var overlay = byId('speccard-overlay');
     if (overlay) overlay.hidden = false;
