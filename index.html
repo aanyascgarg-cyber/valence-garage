@@ -16,7 +16,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=41">
+  <!-- Bumped with every deploy. js/updates.js compares this against
+       version.json and offers a one tap refresh when they differ. -->
+  <meta name="app-version" content="59">
+  <link rel="stylesheet" href="style.css?v=42">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -92,16 +95,37 @@
         </section>
 
         <!-- Advisor quick-entry -->
+        <!-- The Advisor answers from the front door. A greeting and a live
+             composer, so the AI is the first thing you can touch instead of a
+             door you have to find. Sending hands off to the Advisor tab with
+             the question already asked. -->
         <section id="dash-advisor" class="glass-sheet" aria-label="Advisor">
-          <div id="dash-orb" aria-hidden="true">
-            <span class="orb-glow"></span>
-            <span class="orb-core"></span>
+          <div id="dash-advisor-head">
+            <div id="dash-orb" aria-hidden="true">
+              <span class="orb-glow"></span>
+              <span class="orb-core"></span>
+            </div>
+            <div id="dash-advisor-body">
+              <div class="eyebrow">The Advisor is in</div>
+              <h3 id="dash-greeting" class="display-title">Good evening</h3>
+            </div>
           </div>
-          <div id="dash-advisor-body">
-            <div class="eyebrow">The Advisor is in</div>
-            <span id="dash-advisor-hint">Ask how to make it faster.</span>
+
+          <div id="dash-ask-row">
+            <textarea id="dash-ask" rows="1" spellcheck="false" autocomplete="off"
+              placeholder="Ask the Advisor anything" aria-label="Ask the Advisor"></textarea>
+            <button id="btn-dash-send" class="adv-send" type="button" aria-label="Send to the Advisor">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+                <path d="M12 19V5M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
           </div>
-          <button id="btn-dash-advisor" class="btn-secondary" type="button">Ask</button>
+
+          <div id="dash-ask-suggestions">
+            <button type="button" class="chip" data-ask="How do I make this faster?">Make it faster</button>
+            <button type="button" class="chip" data-ask="What should I change for track days?">Set it up for track</button>
+            <button type="button" class="chip" data-ask="How do I make this look meaner?">Make it look meaner</button>
+          </div>
         </section>
 
       </div>
@@ -932,24 +956,25 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=58"></script>
-  <script defer src="js/motion.js?v=58"></script>
-  <script defer src="js/fog.js?v=58"></script>
-  <script defer src="js/heroscene.js?v=58"></script>
-  <script defer src="js/orb.js?v=58"></script>
-  <script defer src="js/physics.js?v=58"></script>
-  <script defer src="js/car.js?v=58"></script>
-  <script defer src="js/cars.js?v=58"></script>
-  <script defer src="js/viewer.js?v=58"></script>
-  <script defer src="js/theater.js?v=58"></script>
-  <script defer src="js/windlab.js?v=58"></script>
-  <script defer src="js/duel.js?v=58"></script>
-  <script defer src="js/speccard.js?v=58"></script>
-  <script defer src="js/knowledge.js?v=58"></script>
-  <script defer src="js/aiengine.js?v=58"></script>
-  <script defer src="js/clinic.js?v=58"></script>
-  <script defer src="js/advisor.js?v=58"></script>
-  <script defer src="js/app.js?v=58"></script>
-  <script defer src="js/intro.js?v=58"></script>
+  <script defer src="js/atmos.js?v=59"></script>
+  <script defer src="js/motion.js?v=59"></script>
+  <script defer src="js/fog.js?v=59"></script>
+  <script defer src="js/heroscene.js?v=59"></script>
+  <script defer src="js/orb.js?v=59"></script>
+  <script defer src="js/physics.js?v=59"></script>
+  <script defer src="js/car.js?v=59"></script>
+  <script defer src="js/cars.js?v=59"></script>
+  <script defer src="js/viewer.js?v=59"></script>
+  <script defer src="js/theater.js?v=59"></script>
+  <script defer src="js/windlab.js?v=59"></script>
+  <script defer src="js/duel.js?v=59"></script>
+  <script defer src="js/updates.js?v=59"></script>
+  <script defer src="js/speccard.js?v=59"></script>
+  <script defer src="js/knowledge.js?v=59"></script>
+  <script defer src="js/aiengine.js?v=59"></script>
+  <script defer src="js/clinic.js?v=59"></script>
+  <script defer src="js/advisor.js?v=59"></script>
+  <script defer src="js/app.js?v=59"></script>
+  <script defer src="js/intro.js?v=59"></script>
 </body>
 </html>

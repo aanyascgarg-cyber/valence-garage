@@ -625,20 +625,73 @@
 
   // ---- dashboard advisor widget ---------------------------------------
 
-  function renderDashAdvisor() {
-    var btn = byId('btn-dash-advisor');
-    if (!btn) return;
-    btn.onclick = function () {
-      showTab('advisor');
-      var input = byId('advisor-input');
-      if (input && typeof input.focus === 'function') {
-        try {
-          input.focus();
-        } catch (e) {
-          // focus failed. Ignore.
+  var DASH_GREETINGS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday'];
+
+  function dashGreeting() {
+    var d = new Date();
+    var hour = d.getHours();
+    var day = DASH_GREETINGS[d.getDay()];
+    if (hour < 5) return 'Late night, ' + day;
+    if (hour < 12) return 'Good morning, this ' + day;
+    if (hour < 17) return 'Happy ' + day;
+    return 'Good evening, this ' + day;
+  }
+
+  // Send a question straight from the Garage: hop to the Advisor and ask it
+  // there, so the owner lands mid-conversation rather than at a blank screen.
+  function askFromDash(text) {
+    var q = String(text || '').trim();
+    if (!q) return;
+    var box = byId('dash-ask');
+    if (box) { box.value = ''; box.style.height = 'auto'; }
+    showTab('advisor');
+    window.setTimeout(function () {
+      try {
+        if (window.Advisor && typeof window.Advisor.ask === 'function') {
+          window.Advisor.ask(q);
         }
-      }
-    };
+      } catch (e) { /* the tab switch already happened */ }
+    }, 60);
+  }
+
+  function renderDashAdvisor() {
+    var greet = byId('dash-greeting');
+    if (greet) greet.textContent = dashGreeting();
+
+    var box = byId('dash-ask');
+    var send = byId('btn-dash-send');
+    if (box && !box.dataset.wired) {
+      box.dataset.wired = '1';
+      box.addEventListener('input', function () {
+        // Grow with the question, capped so the card never runs away.
+        box.style.height = 'auto';
+        box.style.height = Math.min(box.scrollHeight, 160) + 'px';
+      });
+      box.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          askFromDash(box.value);
+        }
+      });
+    }
+    if (send && !send.dataset.wired) {
+      send.dataset.wired = '1';
+      send.addEventListener('click', function () {
+        askFromDash(box ? box.value : '');
+      });
+    }
+
+    var chips = document.querySelectorAll('#dash-ask-suggestions [data-ask]');
+    for (var i = 0; i < chips.length; i++) {
+      (function (chip) {
+        if (chip.dataset.wired) return;
+        chip.dataset.wired = '1';
+        chip.addEventListener('click', function () {
+          askFromDash(chip.getAttribute('data-ask'));
+        });
+      })(chips[i]);
+    }
   }
 
   // ---- builds gallery --------------------------------------------------
