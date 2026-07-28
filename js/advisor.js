@@ -1250,6 +1250,18 @@
     scrollThread();
   }
 
+  // Resize the composer to fit its content, capped so it can never grow tall
+  // enough to push itself under the tab bar.
+  function autoGrow() {
+    var input = byId('advisor-input');
+    if (!input) return;
+    try {
+      input.style.height = 'auto';
+      var max = Math.round(window.innerHeight * 0.30);
+      input.style.height = Math.min(input.scrollHeight, max) + 'px';
+    } catch (e) { }
+  }
+
   // ---- send handling (typed input) -------------------------------------
 
   function handleSend() {
@@ -1262,6 +1274,7 @@
     var text = String(input.value || '').trim();
     if (!text) return;
     input.value = '';
+    autoGrow();
 
     // A question dictated then reviewed still deserves a spoken answer, and it
     // stays on the orb page: voice is a voice experience, so the reply arrives
@@ -1860,11 +1873,16 @@
     var input = byId('advisor-input');
     if (input) {
       input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
+        // Enter sends. Shift+Enter starts a new line, the way every chat box
+        // behaves, now that this is a textarea rather than a single line.
+        if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           handleSend();
         }
       });
+      // Grow with the message instead of scrolling a one line field, so a long
+      // question stays fully readable before it is sent.
+      input.addEventListener('input', autoGrow);
     }
 
     wireVoiceAndStates();
