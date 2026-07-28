@@ -4769,3 +4769,108 @@ input[type="range"]:active::-moz-range-thumb {
 
 /* The hint is the last child of the hero, and the hero was clipping it. */
 #screen-advisor.state-hero #advisor-hero { overflow: visible; }
+
+/* ============================================================
+   ADVISOR v20: real desktop layout + a readable history panel
+   ============================================================ */
+
+/* --- History panel ---
+   It was tangling with the chips because the blanket
+   `#screen-advisor > * { z-index: 1 }` above has the SAME specificity as
+   #advisor-history and comes later, so it beat that panel's z-index:6 and
+   dropped it into the content stack. Restore a real overlay, and make it
+   legible: roomier, its own scroll, and a proper header. */
+#screen-advisor #advisor-history {
+  position: absolute;
+  z-index: 40;
+  top: 52px;
+  left: 0;
+  width: min(340px, calc(100% - 24px));
+  max-height: min(60vh, 420px);
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid rgba(201, 168, 76, 0.4);
+  border-radius: 16px;
+  background: #1b1b1b;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
+}
+
+.adv-hist-head {
+  flex: none;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.22);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+}
+
+/* The list scrolls, not the panel, so the close button never drifts away. */
+#adv-hist-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(201, 168, 76, 0.5) transparent;
+}
+#adv-hist-list::-webkit-scrollbar { width: 8px; }
+#adv-hist-list::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.45);
+  border-radius: 4px;
+}
+
+.adv-hist-item {
+  margin-bottom: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.35;
+  white-space: normal;          /* was nowrap + ellipsis, so titles were unreadable */
+  overflow: visible;
+  text-overflow: clip;
+  border: 1px solid rgba(201, 168, 76, 0.16);
+}
+
+/* --- Desktop: stop pretending to be a phone --- */
+@media (min-width: 900px) {
+  #screen-advisor.state-hero.active,
+  #screen-advisor.state-greet.active,
+  #screen-advisor.state-chat.active {
+    max-width: 980px;
+    padding-left: 32px;
+    padding-right: 32px;
+  }
+
+  /* Roomier composer with a comfortable reading measure. */
+  #screen-advisor #advisor-input { min-height: 54px; font-size: 16px; }
+  .adv-send { width: 54px; height: 54px; }
+  .adv-send svg { width: 22px; height: 22px; }
+
+  /* Bubbles get a sane line length instead of stretching the full width. */
+  #screen-advisor.state-chat .msg { max-width: 74%; }
+  #screen-advisor.state-chat .msg.advisor { font-size: 17px; }
+
+  /* A larger orb, since there is room for presence on a desktop. */
+  #screen-advisor.state-hero #advisor-orb {
+    width: min(34vw, 300px);
+    height: min(34vw, 300px);
+    max-height: 46vh;
+  }
+
+  /* The history panel sits beside the conversation rather than over it. */
+  #screen-advisor #advisor-history {
+    width: 340px;
+    max-height: min(66vh, 520px);
+  }
+}
+
+/* Very wide screens: keep the thread centred and readable. */
+@media (min-width: 1400px) {
+  #screen-advisor.state-hero.active,
+  #screen-advisor.state-greet.active,
+  #screen-advisor.state-chat.active { max-width: 1100px; }
+}
+
+/* Anchor the conversation just above the composer instead of stranding a few
+   messages at the top with a large void beneath them, which is how every chat
+   interface behaves. Still scrolls normally once the thread grows. */
+#screen-advisor.state-chat #advisor-thread { justify-content: flex-end; }
