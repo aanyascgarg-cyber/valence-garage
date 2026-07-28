@@ -73,8 +73,28 @@
     tracked(ctx, String(label).toUpperCase(), x + w / 2, y + 116, 2.4, 'center');
   }
 
-  // The gold V monogram, drawn as two tapered blades meeting at a joint.
+  // The official Valence mark. Preloaded once so the card can be painted
+  // synchronously; falls back to a drawn V only if the file cannot load.
+  var LOGO_SRC = 'assets/logo-v.png';
+  var logoImg = null;
+  var logoReady = false;
+  (function preloadLogo() {
+    try {
+      var im = new Image();
+      im.onload = function () { logoImg = im; logoReady = true; };
+      im.onerror = function () { logoReady = false; };
+      im.src = LOGO_SRC;
+    } catch (e) { /* the fallback covers it */ }
+  })();
+
   function monogram(ctx, cx, cy, s) {
+    if (logoReady && logoImg) {
+      var d = s * 1.15;
+      try {
+        ctx.drawImage(logoImg, cx - d / 2, cy - d / 2, d, d);
+        return;
+      } catch (e) { /* fall through to the drawn mark */ }
+    }
     ctx.save();
     ctx.translate(cx, cy);
     ctx.strokeStyle = GOLD;

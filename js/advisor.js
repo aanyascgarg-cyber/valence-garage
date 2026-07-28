@@ -1412,9 +1412,19 @@
   function setHeroState() {
     var s = advisorScreen();
     if (s && s.classList) {
+      // Clear EVERY other state. Previously only state-chat was removed, so a
+      // session that had passed through the greeting page kept state-greet (and
+      // input-open / has-subs) and there was no way back to the opening orb.
+      s.classList.remove('state-chat', 'state-greet', 'input-open', 'has-subs');
       s.classList.add('state-hero');
-      s.classList.remove('state-chat');
     }
+    // setChatState adds .compact to the header, which shrinks the orb to 56px
+    // and hides the title. Leaving it on meant a new conversation returned to
+    // the hero layout still wearing the compact chat header.
+    var hero = byId('advisor-hero');
+    if (hero && hero.classList) hero.classList.remove('compact');
+    var row = byId('advisor-input-row');
+    if (row) row.classList.remove('revealed');
     if (!chatStarted) orbIdle();
   }
 
@@ -1506,6 +1516,7 @@
   }
 
   function newConversation() {
+    // The finished conversation is archived first, so history is never lost.
     saveSession();
     sessionId = null;
     ai.history = [];
@@ -1514,9 +1525,18 @@
     if (t) t.innerHTML = '';
     clearVoiceLive();
     closeHistory();
+    setSubsMode(false);
+    // Reset the composer as well, otherwise a half-typed question survives.
+    var input = byId('advisor-input');
+    if (input) { input.value = ''; try { autoGrow(); } catch (e) {} }
     setHeroState();
     var title = byId('advisor-title');
     if (title) title.textContent = 'What can I do for you today?';
+    setOrbHint('idle');
+    if (typeof window.speechSynthesis !== 'undefined') {
+      try { window.speechSynthesis.cancel(); } catch (e) {}
+    }
+    markSpeaking(false);
   }
 
   function openConversation(id) {
