@@ -5126,3 +5126,43 @@ input[type="range"]:active::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   #update-bar { animation: none; }
 }
+
+/* ============================================================
+   v23: the composer grows UPWARD into the conversation
+   It was growing downward off the page because the thread carried a
+   38vh floor and could not shrink, so every pixel the textarea gained
+   pushed the whole column past the bottom of the screen. The floor was
+   added back when a stuck 400px orb could collapse the thread; that
+   cause is gone, so the thread can shrink again. Now the conversation
+   scrolls up as you type and the composer stays put, which is how every
+   chat interface behaves.
+   ============================================================ */
+#screen-advisor.state-chat #advisor-thread {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-bottom: 16px;   /* breathing room between the reply and the box */
+}
+
+/* Redundant in chat: the composer is right there. Reclaiming its space
+   gives the conversation more room. */
+#screen-advisor.state-chat #btn-keyboard { display: none; }
+
+#screen-advisor #advisor-input { max-height: 26vh; }
+
+/* ---- Install card ---- */
+#dash-install {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+#install-body { flex: 1 1 220px; min-width: 0; }
+#install-copy {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-accent);
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(250, 244, 240, 0.78);
+}
+#btn-install { flex: none; }

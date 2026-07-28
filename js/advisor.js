@@ -1257,8 +1257,14 @@
     if (!input) return;
     try {
       input.style.height = 'auto';
-      var max = Math.round(window.innerHeight * 0.30);
+      // 26vh, so a long question can never crowd out the conversation. The
+      // thread shrinks to absorb the growth, which pushes the answer UP rather
+      // than letting the box march down the page.
+      var max = Math.round(window.innerHeight * 0.26);
       input.style.height = Math.min(input.scrollHeight, max) + 'px';
+      // Keep the newest message pinned in view as the box takes space.
+      var t = thread();
+      if (t) t.scrollTop = t.scrollHeight;
     } catch (e) { }
   }
 

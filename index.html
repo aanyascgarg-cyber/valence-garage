@@ -18,8 +18,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
   <!-- Bumped with every deploy. js/updates.js compares this against
        version.json and offers a one tap refresh when they differ. -->
-  <meta name="app-version" content="59">
-  <link rel="stylesheet" href="style.css?v=42">
+  <meta name="app-version" content="60">
+  <link rel="stylesheet" href="style.css?v=43">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -95,6 +95,17 @@
         </section>
 
         <!-- Advisor quick-entry -->
+        <!-- Install affordance. Hidden by default; js/install.js reveals it
+             only when the app can actually be installed, and never once it
+             already is. -->
+        <section id="dash-install" class="glass-sheet" aria-label="Install" hidden>
+          <div id="install-body">
+            <div class="eyebrow">Keep the garage close</div>
+            <span id="install-copy">Install Valence for a full-screen app on your home screen.</span>
+          </div>
+          <button id="btn-install" class="btn-primary" type="button">Install</button>
+        </section>
+
         <!-- The Advisor answers from the front door. A greeting and a live
              composer, so the AI is the first thing you can touch instead of a
              door you have to find. Sending hands off to the Advisor tab with
@@ -956,25 +967,26 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=59"></script>
-  <script defer src="js/motion.js?v=59"></script>
-  <script defer src="js/fog.js?v=59"></script>
-  <script defer src="js/heroscene.js?v=59"></script>
-  <script defer src="js/orb.js?v=59"></script>
-  <script defer src="js/physics.js?v=59"></script>
-  <script defer src="js/car.js?v=59"></script>
-  <script defer src="js/cars.js?v=59"></script>
-  <script defer src="js/viewer.js?v=59"></script>
-  <script defer src="js/theater.js?v=59"></script>
-  <script defer src="js/windlab.js?v=59"></script>
-  <script defer src="js/duel.js?v=59"></script>
-  <script defer src="js/updates.js?v=59"></script>
-  <script defer src="js/speccard.js?v=59"></script>
-  <script defer src="js/knowledge.js?v=59"></script>
-  <script defer src="js/aiengine.js?v=59"></script>
-  <script defer src="js/clinic.js?v=59"></script>
-  <script defer src="js/advisor.js?v=59"></script>
-  <script defer src="js/app.js?v=59"></script>
-  <script defer src="js/intro.js?v=59"></script>
+  <script defer src="js/atmos.js?v=60"></script>
+  <script defer src="js/motion.js?v=60"></script>
+  <script defer src="js/fog.js?v=60"></script>
+  <script defer src="js/heroscene.js?v=60"></script>
+  <script defer src="js/orb.js?v=60"></script>
+  <script defer src="js/physics.js?v=60"></script>
+  <script defer src="js/car.js?v=60"></script>
+  <script defer src="js/cars.js?v=60"></script>
+  <script defer src="js/viewer.js?v=60"></script>
+  <script defer src="js/theater.js?v=60"></script>
+  <script defer src="js/windlab.js?v=60"></script>
+  <script defer src="js/duel.js?v=60"></script>
+  <script defer src="js/install.js?v=60"></script>
+  <script defer src="js/updates.js?v=60"></script>
+  <script defer src="js/speccard.js?v=60"></script>
+  <script defer src="js/knowledge.js?v=60"></script>
+  <script defer src="js/aiengine.js?v=60"></script>
+  <script defer src="js/clinic.js?v=60"></script>
+  <script defer src="js/advisor.js?v=60"></script>
+  <script defer src="js/app.js?v=60"></script>
+  <script defer src="js/intro.js?v=60"></script>
 </body>
 </html>
