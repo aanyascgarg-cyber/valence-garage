@@ -4758,7 +4758,14 @@ input[type="range"]:active::-moz-range-thumb {
    the screen said empty, and the screen was right.
    Fix: lift every direct child of the advisor above that layer.
    ============================================================ */
-#screen-advisor > * {
+/* EVERY screen, not just the advisor. Screens paint their backdrop as a
+   position:fixed ::before with z-index 0, and a positioned element paints in a
+   later phase than ordinary static content, so that backdrop covers any static
+   child. It hid the advisor's whole composer, and then on the Garage it hid the
+   tagline and the Arrange button while #marquee and #mono-crest stayed visible
+   purely because they happen to carry position:relative. Lifting every direct
+   child of every screen closes it once instead of per screen. */
+.screen > * {
   position: relative;
   z-index: 1;
 }
