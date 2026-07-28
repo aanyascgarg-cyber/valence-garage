@@ -52,4 +52,4 @@ required except fonts and optional AI calls.
 
 ---
 
-Designed, engineered, verified for car lovers by car lovers.
+Designed, engineered, verified: for car lovers by car lovers.
