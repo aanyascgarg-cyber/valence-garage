@@ -1,8 +1,7 @@
 # Valence Garage
 
 A dark-luxury hypercar atelier that runs entirely in your browser, installable
-on phone and laptop as a PWA. Built to showcase what one AI (Claude Fable 5)
-can design and engineer end to end.
+on phone and laptop as a PWA.
 
 **Live app:** https://aanyascgarg-cyber.github.io/valence-garage/
 
