@@ -5166,3 +5166,64 @@ input[type="range"]:active::-moz-range-thumb {
   color: rgba(250, 244, 240, 0.78);
 }
 #btn-install { flex: none; }
+
+/* ---- iOS install guide ----
+   Safari exposes no install API, so this is instruction, not automation. */
+#ios-install {
+  position: fixed;
+  inset: 0;
+  z-index: 95;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.ios-card {
+  width: min(420px, 100%);
+  padding: 24px 22px 20px;
+  border: 1px solid rgba(201, 168, 76, 0.45);
+  border-radius: 18px;
+  background: #141414;
+  box-shadow: 0 26px 70px rgba(0, 0, 0, 0.8);
+  text-align: center;
+}
+
+.ios-card h3 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--porcelain);
+}
+
+.ios-steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+  text-align: left;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(250, 244, 240, 0.86);
+}
+.ios-steps li { margin-bottom: 8px; }
+
+/* Points at the Share control, which lives on Safari's bottom bar. */
+.ios-arrow {
+  margin: 6px 0 14px;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--gold);
+  animation: ios-bob 1.4s ease-in-out infinite;
+}
+
+@keyframes ios-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.75; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ios-arrow { animation: none; }
+}

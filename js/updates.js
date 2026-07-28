@@ -91,6 +91,9 @@
     } catch (e) { /* fetch unavailable: stay quiet */ }
   }
 
+  // The service worker registration also reports a newer build; share one UI.
+  window.addEventListener('valence-update-ready', function () { showPrompt(); });
+
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) check();
   });
