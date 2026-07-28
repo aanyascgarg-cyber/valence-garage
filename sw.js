@@ -24,7 +24,7 @@
    and would blow the storage budget.
    ============================================================ */
 
-var VERSION = 'v62';
+var VERSION = 'v64';
 var SHELL_CACHE = 'valence-shell-' + VERSION;
 var RUNTIME_CACHE = 'valence-runtime-' + VERSION;
 

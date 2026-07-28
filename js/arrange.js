@@ -27,10 +27,14 @@
 
   function byId(id) { return document.getElementById(id); }
 
+  // The install prompt is pinned to the top and is not a widget, so it is
+  // excluded from both dragging and the saved order.
+  var PINNED = { 'dash-install': true };
+
   function panels() {
     if (!board) return [];
     return Array.prototype.filter.call(board.children, function (el) {
-      return el.nodeType === 1 && el.id;
+      return el.nodeType === 1 && el.id && !PINNED[el.id];
     });
   }
 

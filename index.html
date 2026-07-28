@@ -18,8 +18,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
   <!-- Bumped with every deploy. js/updates.js compares this against
        version.json and offers a one tap refresh when they differ. -->
-  <meta name="app-version" content="62">
-  <link rel="stylesheet" href="style.css?v=45">
+  <meta name="app-version" content="64">
+  <link rel="stylesheet" href="style.css?v=47">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -39,11 +39,13 @@
     <!-- ============================ GARAGE ============================ -->
     <section id="screen-garage" class="screen active" aria-label="Garage">
       <header class="masthead">
-        <!-- Gold V monogram: a 32-frame Blender turntable (EEVEE metal +
-             rim light) played as an 8x4 stepped sprite. inline-block so it
-             follows the masthead text-align (left on mobile, centred desktop).
-             The maison crest above the wordmark. -->
-        <div id="mono-crest" aria-hidden="true"><span class="mono-sprite"></span></div>
+        <!-- The official Valence mark. This was a 32-frame Blender turntable
+             played as a stepped sprite; on a phone that meant repositioning a
+             3360x1680 image 32 times, which read as flashing and glitching.
+             It is now the real logo, static, so it is simply always there. -->
+        <div id="mono-crest" aria-hidden="true">
+          <img src="assets/logo-v.png" alt="" width="72" height="72">
+        </div>
         <div class="eyebrow">The Private Collection</div>
         <!-- v9 marquee: motion.js splits the wordmark into per-letter spans
              for the staggered rise; CSS paints the gradient + shine sweep. -->
@@ -52,6 +54,21 @@
         <div class="hairline"></div>
         <button id="btn-arrange" class="btn-ghost" type="button" aria-pressed="false">Arrange</button>
       </header>
+
+      <!-- Install affordance. Deliberately OUTSIDE #dashboard: that becomes a
+           grid with named template areas on desktop, where `order` is ignored
+           and any unplaced item is auto-placed LAST, which is where this card
+           kept landing. Here it is unconditionally the first thing under the
+           wordmark at every screen size, and Arrange cannot touch it.
+           Hidden until js/install.js confirms the app can actually be
+           installed, and never shown once it already is. -->
+      <section id="dash-install" class="glass-sheet" aria-label="Install" hidden>
+        <div id="install-body">
+          <div class="eyebrow">Keep the garage close</div>
+          <span id="install-copy">Install Valence for a full-screen app on your home screen.</span>
+        </div>
+        <button id="btn-install" class="btn-primary" type="button">Install</button>
+      </section>
 
       <div id="dashboard">
 
@@ -96,17 +113,6 @@
         </section>
 
         <!-- Advisor quick-entry -->
-        <!-- Install affordance. Hidden by default; js/install.js reveals it
-             only when the app can actually be installed, and never once it
-             already is. -->
-        <section id="dash-install" class="glass-sheet" aria-label="Install" hidden>
-          <div id="install-body">
-            <div class="eyebrow">Keep the garage close</div>
-            <span id="install-copy">Install Valence for a full-screen app on your home screen.</span>
-          </div>
-          <button id="btn-install" class="btn-primary" type="button">Install</button>
-        </section>
-
         <!-- The Advisor answers from the front door. A greeting and a live
              composer, so the AI is the first thing you can touch instead of a
              door you have to find. Sending hands off to the Advisor tab with
@@ -968,27 +974,27 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=62"></script>
-  <script defer src="js/motion.js?v=62"></script>
-  <script defer src="js/fog.js?v=62"></script>
-  <script defer src="js/heroscene.js?v=62"></script>
-  <script defer src="js/orb.js?v=62"></script>
-  <script defer src="js/physics.js?v=62"></script>
-  <script defer src="js/car.js?v=62"></script>
-  <script defer src="js/cars.js?v=62"></script>
-  <script defer src="js/viewer.js?v=62"></script>
-  <script defer src="js/theater.js?v=62"></script>
-  <script defer src="js/windlab.js?v=62"></script>
-  <script defer src="js/duel.js?v=62"></script>
-  <script defer src="js/arrange.js?v=62"></script>
-  <script defer src="js/install.js?v=62"></script>
-  <script defer src="js/updates.js?v=62"></script>
-  <script defer src="js/speccard.js?v=62"></script>
-  <script defer src="js/knowledge.js?v=62"></script>
-  <script defer src="js/aiengine.js?v=62"></script>
-  <script defer src="js/clinic.js?v=62"></script>
-  <script defer src="js/advisor.js?v=62"></script>
-  <script defer src="js/app.js?v=62"></script>
-  <script defer src="js/intro.js?v=62"></script>
+  <script defer src="js/atmos.js?v=64"></script>
+  <script defer src="js/motion.js?v=64"></script>
+  <script defer src="js/fog.js?v=64"></script>
+  <script defer src="js/heroscene.js?v=64"></script>
+  <script defer src="js/orb.js?v=64"></script>
+  <script defer src="js/physics.js?v=64"></script>
+  <script defer src="js/car.js?v=64"></script>
+  <script defer src="js/cars.js?v=64"></script>
+  <script defer src="js/viewer.js?v=64"></script>
+  <script defer src="js/theater.js?v=64"></script>
+  <script defer src="js/windlab.js?v=64"></script>
+  <script defer src="js/duel.js?v=64"></script>
+  <script defer src="js/arrange.js?v=64"></script>
+  <script defer src="js/install.js?v=64"></script>
+  <script defer src="js/updates.js?v=64"></script>
+  <script defer src="js/speccard.js?v=64"></script>
+  <script defer src="js/knowledge.js?v=64"></script>
+  <script defer src="js/aiengine.js?v=64"></script>
+  <script defer src="js/clinic.js?v=64"></script>
+  <script defer src="js/advisor.js?v=64"></script>
+  <script defer src="js/app.js?v=64"></script>
+  <script defer src="js/intro.js?v=64"></script>
 </body>
 </html>

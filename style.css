@@ -3045,17 +3045,15 @@ input[type="range"]:active::-moz-range-thumb {
   pointer-events: none;
 }
 
-.mono-sprite {
-  position: absolute;
-  inset: 0;
-  background-image: url("assets/vmono-spin.webp?v=2");
-  background-size: 800% 400%;
-  background-repeat: no-repeat;
-  animation:
-    mono-x 2.4s steps(8) infinite,
-    mono-y 9.6s steps(4) infinite;
+/* Static, and therefore always simply there. The animated sprite version
+   flickered on phones because it repositioned a 3360x1680 image 32 times. */
+#mono-crest img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   filter: drop-shadow(0 5px 16px rgba(0, 0, 0, 0.55))
-          drop-shadow(0 0 10px rgba(201, 168, 76, 0.22));
+          drop-shadow(0 0 14px rgba(201, 168, 76, 0.34));
 }
 
 @keyframes mono-x {
@@ -5297,3 +5295,21 @@ input[type="range"]:active::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   #btn-arrange { transition: none; }
 }
+
+/* Crest sizing: a touch larger now that it is the real mark, and it no
+   longer needs the sprite's fixed square. */
+#mono-crest {
+  width: 72px;
+  height: 72px;
+}
+
+/* Install prompt is pinned to the very top of the dashboard so nobody
+   scrolls past it, and Arrange cannot move it. */
+#dash-install {
+  margin-bottom: 14px;   /* matches the dashboard's gap */
+  border-color: rgba(201, 168, 76, 0.5);
+  background:
+    linear-gradient(180deg, rgba(201, 168, 76, 0.10), rgba(201, 168, 76, 0.03)),
+    rgba(20, 24, 28, 0.6);
+}
+#dashboard.arranging > #dash-install { outline: none; }
