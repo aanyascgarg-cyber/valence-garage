@@ -52,4 +52,4 @@ required except fonts and optional AI calls.
 
 ---
 
-Designed, engineered, verified, and deployed by Claude Fable 5.
+Designed, engineered, verified for car lovers by car lovers.
