@@ -11,15 +11,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Valence">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon-v2.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192-v2.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,700&family=Montserrat:wght@300;400;500;600&family=Cormorant+Garamond:ital,wght@1,400;1,500&family=Italiana&display=swap" rel="stylesheet">
   <!-- Bumped with every deploy. js/updates.js compares this against
        version.json and offers a one tap refresh when they differ. -->
-  <meta name="app-version" content="61">
-  <link rel="stylesheet" href="style.css?v=44">
+  <meta name="app-version" content="62">
+  <link rel="stylesheet" href="style.css?v=45">
 </head>
 <body>
   <!-- Fixed atmosphere: realistic volumetric fog painted by js/fog.js on
@@ -50,6 +50,7 @@
         <h1 id="marquee" class="display-title marquee">VALENCE</h1>
         <p class="tagline">Where physics meets desire.</p>
         <div class="hairline"></div>
+        <button id="btn-arrange" class="btn-ghost" type="button" aria-pressed="false">Arrange</button>
       </header>
 
       <div id="dashboard">
@@ -967,26 +968,27 @@
        app.js toggles .run; pure decoration, pointer-events none. -->
   <div id="seam-wipe" aria-hidden="true"></div>
 
-  <script defer src="js/atmos.js?v=61"></script>
-  <script defer src="js/motion.js?v=61"></script>
-  <script defer src="js/fog.js?v=61"></script>
-  <script defer src="js/heroscene.js?v=61"></script>
-  <script defer src="js/orb.js?v=61"></script>
-  <script defer src="js/physics.js?v=61"></script>
-  <script defer src="js/car.js?v=61"></script>
-  <script defer src="js/cars.js?v=61"></script>
-  <script defer src="js/viewer.js?v=61"></script>
-  <script defer src="js/theater.js?v=61"></script>
-  <script defer src="js/windlab.js?v=61"></script>
-  <script defer src="js/duel.js?v=61"></script>
-  <script defer src="js/install.js?v=61"></script>
-  <script defer src="js/updates.js?v=61"></script>
-  <script defer src="js/speccard.js?v=61"></script>
-  <script defer src="js/knowledge.js?v=61"></script>
-  <script defer src="js/aiengine.js?v=61"></script>
-  <script defer src="js/clinic.js?v=61"></script>
-  <script defer src="js/advisor.js?v=61"></script>
-  <script defer src="js/app.js?v=61"></script>
-  <script defer src="js/intro.js?v=61"></script>
+  <script defer src="js/atmos.js?v=62"></script>
+  <script defer src="js/motion.js?v=62"></script>
+  <script defer src="js/fog.js?v=62"></script>
+  <script defer src="js/heroscene.js?v=62"></script>
+  <script defer src="js/orb.js?v=62"></script>
+  <script defer src="js/physics.js?v=62"></script>
+  <script defer src="js/car.js?v=62"></script>
+  <script defer src="js/cars.js?v=62"></script>
+  <script defer src="js/viewer.js?v=62"></script>
+  <script defer src="js/theater.js?v=62"></script>
+  <script defer src="js/windlab.js?v=62"></script>
+  <script defer src="js/duel.js?v=62"></script>
+  <script defer src="js/arrange.js?v=62"></script>
+  <script defer src="js/install.js?v=62"></script>
+  <script defer src="js/updates.js?v=62"></script>
+  <script defer src="js/speccard.js?v=62"></script>
+  <script defer src="js/knowledge.js?v=62"></script>
+  <script defer src="js/aiengine.js?v=62"></script>
+  <script defer src="js/clinic.js?v=62"></script>
+  <script defer src="js/advisor.js?v=62"></script>
+  <script defer src="js/app.js?v=62"></script>
+  <script defer src="js/intro.js?v=62"></script>
 </body>
 </html>

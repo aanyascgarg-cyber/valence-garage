@@ -24,7 +24,7 @@
    and would blow the storage budget.
    ============================================================ */
 
-var VERSION = 'v61';
+var VERSION = 'v62';
 var SHELL_CACHE = 'valence-shell-' + VERSION;
 var RUNTIME_CACHE = 'valence-runtime-' + VERSION;
 
@@ -33,9 +33,9 @@ var SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icons/icon-192.png',
-  './icons/icon-512.png',
-  './icons/apple-touch-icon.png',
+  './icons/icon-192-v2.png',
+  './icons/icon-512-v2.png',
+  './icons/apple-touch-icon-v2.png',
   './assets/logo-v.png'
 ];
 

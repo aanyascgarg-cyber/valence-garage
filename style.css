@@ -5227,3 +5227,73 @@ input[type="range"]:active::-moz-range-thumb {
 @media (prefers-reduced-motion: reduce) {
   .ios-arrow { animation: none; }
 }
+
+/* ============================================================
+   Dashboard arranging
+   Off by default: an always-draggable panel fights the scroll gesture
+   on a phone, so nothing moves until Arrange is pressed.
+   ============================================================ */
+#btn-arrange {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 12px;
+  padding: 8px 16px;
+  border: 1px solid rgba(201, 168, 76, 0.35);
+  border-radius: 999px;
+  background: rgba(201, 168, 76, 0.08);
+  color: var(--champagne);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+#btn-arrange:hover { background: rgba(201, 168, 76, 0.18); border-color: var(--gold); }
+#btn-arrange[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--champagne), var(--gold));
+  border-color: transparent;
+  color: #171208;
+}
+
+#dashboard.arranging > * {
+  position: relative;
+  outline: 1px dashed rgba(201, 168, 76, 0.45);
+  outline-offset: 4px;
+  /* The browser must not claim the gesture, or dragging turns into scrolling. */
+  touch-action: none;
+  user-select: none;
+}
+
+.dash-grip {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(201, 168, 76, 0.5);
+  border-radius: 10px;
+  background: rgba(20, 20, 20, 0.9);
+  color: var(--champagne);
+  cursor: grab;
+  touch-action: none;
+}
+.dash-grip:active { cursor: grabbing; }
+.dash-grip svg { width: 20px; height: 20px; }
+
+#dashboard > .dragging {
+  z-index: 20;
+  opacity: 0.92;
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.7);
+  outline-color: var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #btn-arrange { transition: none; }
+}
